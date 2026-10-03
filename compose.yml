@@ -1,0 +1,407 @@
+name: infrastructure
+
+services:
+  # ===========================================================================
+  # Docker Socket Proxy
+  # Restricted Docker API access for Traefik.
+  # Rootless Docker socket on this host is /run/user/1000/docker.sock.
+  # ===========================================================================
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+
+    environment:
+      CONTAINERS: "1"
+      NETWORKS: "1"
+      SERVICES: "1"
+      TASKS: "1"
+      EVENTS: "1"
+      INFO: "1"
+      VERSION: "1"
+      PING: "1"
+
+      POST: "0"
+      DELETE: "0"
+      AUTH: "0"
+      SECRETS: "0"
+      CONFIGS: "0"
+      IMAGES: "0"
+      VOLUMES: "0"
+      EXEC: "0"
+      SYSTEM: "0"
+
+    volumes:
+      - /run/user/1000/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - docker-api
+
+    security_opt:
+      - no-new-privileges:true
+      - label=disable
+
+
+  # ===========================================================================
+  # Traefik
+  # Central reverse proxy.
+  #
+  # LAN:
+  #   HTTP  80
+  #   HTTPS 443
+  # ===========================================================================
+  traefik:
+    image: traefik:v3.6
+    container_name: traefik
+    restart: unless-stopped
+
+    depends_on:
+      - docker-socket-proxy
+
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://docker-socket-proxy:2375"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=${PROXY_NETWORK:-proxy}"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
+      - "--accesslog=true"
+
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.entrypoint=metrics"
+      - "--entrypoints.metrics.address=:8082"
+
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+      - "${TRAEFIK_HTTPS_PORT:-443}:443"
+
+    networks:
+      - proxy
+      - monitoring
+      - docker-api
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ===========================================================================
+  # Dockge
+  # Docker Compose management.
+  #
+  # LAN:
+  #   http://SERVER-IP:5001
+  #
+  # NOTE:
+  # Dockge intentionally has direct Docker socket access because it needs
+  # control of Docker to manage stacks.
+  # ===========================================================================
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    restart: unless-stopped
+
+    environment:
+      DOCKGE_STACKS_DIR: /opt/docker
+      PUID: "1000"
+      PGID: "1000"
+      TZ: ${TZ:-America/New_York}
+
+    volumes:
+      - /run/user/1000/docker.sock:/var/run/docker.sock
+      - /opt/docker:/opt/docker
+      - dockge-data:/app/data
+
+    ports:
+      - "${DOCKGE_PORT:-5001}:5001"
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - "traefik.http.routers.dockge.rule=Host(`${DOCKGE_HOSTNAME:-dockge.home}`)"
+      - "traefik.http.routers.dockge.entrypoints=web"
+      - "traefik.http.services.dockge.loadbalancer.server.port=5001"
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ===========================================================================
+  # MariaDB for Uptime Kuma
+  #
+  # INTERNAL ONLY. Port 3306 is NOT published to the host/LAN.
+  # ===========================================================================
+  uptime-db:
+    image: mariadb:11
+    container_name: uptime-db
+    restart: unless-stopped
+
+    environment:
+      MARIADB_DATABASE: ${UPTIME_DB_NAME:-uptime_kuma}
+      MARIADB_USER: ${UPTIME_DB_USER:-uptime_kuma}
+      MARIADB_PASSWORD: ${UPTIME_DB_PASSWORD:?Set UPTIME_DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${UPTIME_DB_ROOT_PASSWORD:?Set UPTIME_DB_ROOT_PASSWORD in .env}
+
+    volumes:
+      - uptime-db-data:/var/lib/mysql
+
+    networks:
+      - uptime-db
+
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      start_period: 5m
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ===========================================================================
+  # Uptime Kuma
+  #
+  # LAN:
+  #   http://SERVER-IP:3001
+  # ===========================================================================
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+
+    depends_on:
+      uptime-db:
+        condition: service_healthy
+
+    environment:
+      UPTIME_KUMA_DB_TYPE: mariadb
+      UPTIME_KUMA_DB_HOSTNAME: uptime-db
+      UPTIME_KUMA_DB_PORT: "3306"
+      UPTIME_KUMA_DB_NAME: ${UPTIME_DB_NAME:-uptime_kuma}
+      UPTIME_KUMA_DB_USERNAME: ${UPTIME_DB_USER:-uptime_kuma}
+      UPTIME_KUMA_DB_PASSWORD: ${UPTIME_DB_PASSWORD:?Set UPTIME_DB_PASSWORD in .env}
+
+    volumes:
+      - uptime-kuma-data:/app/data
+
+    ports:
+      - "${UPTIME_KUMA_PORT:-3001}:3001"
+
+    networks:
+      - proxy
+      - monitoring
+      - uptime-db
+
+    labels:
+      - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - "traefik.http.routers.uptime.rule=Host(`${UPTIME_HOSTNAME:-uptime.home}`)"
+      - "traefik.http.routers.uptime.entrypoints=web"
+      - "traefik.http.services.uptime.loadbalancer.server.port=3001"
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ===========================================================================
+  # Prometheus
+  #
+  # IMPORTANT:
+  # Prometheus listens on 9090 INSIDE the container.
+  # We deliberately publish it as 9091 on the Fedora host because host port
+  # 9090 is already occupied.
+  #
+  # LAN:
+  #   http://SERVER-IP:9091
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}"
+      - "--web.enable-lifecycle"
+      - "--web.listen-address=0.0.0.0:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,Z
+      - prometheus-data:/prometheus
+
+    # Deliberately hard-coded host port while troubleshooting.
+    # This removes .env substitution as a possible cause.
+    ports:
+      - "9091:9090"
+
+    networks:
+      - monitoring
+
+    depends_on:
+      - cadvisor
+      - node-exporter
+
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ===========================================================================
+  # cAdvisor
+  # Container resource metrics.
+  #
+  # Internal only; Prometheus accesses cadvisor:8080.
+  # ===========================================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+
+    privileged: true
+
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+    devices:
+      - /dev/kmsg:/dev/kmsg
+
+    networks:
+      - monitoring
+
+    security_opt:
+      - label=disable
+
+
+  # ===========================================================================
+  # Node Exporter
+  # Fedora host metrics.
+  #
+  # Internal only; Prometheus accesses node-exporter:9100.
+  # ===========================================================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+
+    volumes:
+      - /:/host:ro,rslave
+
+    pid: host
+
+    networks:
+      - monitoring
+
+    security_opt:
+      - no-new-privileges:true
+      - label=disable
+
+
+  # ===========================================================================
+  # Grafana
+  #
+  # LAN:
+  #   http://SERVER-IP:3002
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+
+      # Direct LAN access currently uses SERVER-IP:3002.
+      # This can become the Traefik URL later.
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3002}
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro,Z
+
+    ports:
+      - "${GRAFANA_PORT:-3002}:3000"
+
+    networks:
+      - proxy
+      - monitoring
+
+    depends_on:
+      - prometheus
+
+    labels:
+      - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_HOSTNAME:-grafana.home}`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+    security_opt:
+      - no-new-privileges:true
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  # Shared reverse-proxy/application network.
+  proxy:
+    name: ${PROXY_NETWORK:-proxy}
+
+  # Metrics network. Not directly reachable from outside Docker.
+  monitoring:
+    name: ${MONITORING_NETWORK:-monitoring}
+
+  # Traefik <-> Docker socket proxy only.
+  docker-api:
+    name: docker-api
+    internal: true
+
+  # Uptime Kuma <-> MariaDB only.
+  uptime-db:
+    name: uptime-db
+    internal: true
+
+
+# =============================================================================
+# Persistent volumes
+# =============================================================================
+
+volumes:
+  prometheus-data:
+    name: prometheus-data
+
+  grafana-data:
+    name: grafana-data
+
+  uptime-kuma-data:
+    name: uptime-kuma-data
+
+  uptime-db-data:
+    name: uptime-db-data
+
+  dockge-data:
+    name: dockge-data
