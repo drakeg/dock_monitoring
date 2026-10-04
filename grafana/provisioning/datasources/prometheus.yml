@@ -1,8 +1,16 @@
 apiVersion: 1
 
+# Remove any legacy provisioned Prometheus datasource before recreating it
+# with the stable UID used by file-provisioned dashboards. This makes the
+# transition safe for existing Grafana volumes as well as fresh installs.
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
 datasources:
   - name: Prometheus
     uid: prometheus
+    orgId: 1
     type: prometheus
     access: proxy
     url: http://prometheus:9090
