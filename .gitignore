@@ -1,1 +1,30 @@
+# Environment files / secrets
 .env
+.env.*
+!.env.example
+
+# Local overrides
+compose.override.yml
+docker-compose.override.yml
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Logs and runtime artifacts
+*.log
+logs/
+tmp/
+*.pid
+
+# Backups
+*.bak
+*.backup
+*.old
