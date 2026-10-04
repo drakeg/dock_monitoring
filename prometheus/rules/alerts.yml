@@ -78,3 +78,16 @@ groups:
         annotations:
           summary: "MariaDB connection usage above 80%"
           description: "MariaDB connection usage has exceeded 80% of max_connections for 10 minutes."
+
+
+  - name: notification-test
+    rules:
+      - alert: MonitoringNotificationTest
+        expr: vector(1)
+        for: 1m
+        labels:
+          severity: info
+          test: "true"
+        annotations:
+          summary: "Monitoring notification test"
+          description: "Controlled test alert for verifying Prometheus to Alertmanager to SMTP delivery. Remove this rule after the firing email is confirmed."
