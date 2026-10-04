@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
-STAMP="$(date +%Y%m%d-%H%M%S)"
-DEST="${BACKUP_DIR%/}/${STAMP}"
-
-mkdir -p "$DEST"
-
 if [[ ! -f .env ]]; then
   echo "ERROR: .env is required for the MariaDB logical backup." >&2
   exit 1
@@ -18,6 +12,14 @@ source .env
 set +a
 
 : "${UPTIME_DB_ROOT_PASSWORD:?UPTIME_DB_ROOT_PASSWORD must be set in .env}"
+
+BACKUP_DIR="${BACKUP_DIR:-./backups}"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+BACKUP_DIR="$(cd "$BACKUP_DIR" && pwd)"
+DEST="$BACKUP_DIR/$STAMP"
+
+mkdir -p "$DEST"
 
 echo "Creating MariaDB logical backup..."
 docker exec uptime-db mariadb-dump \
@@ -37,7 +39,7 @@ backup_volume() {
   echo "Archiving Docker volume $volume..."
   docker run --rm \
     -v "$volume:/source:ro" \
-    -v "$PWD/$DEST:/backup" \
+    -v "$DEST:/backup" \
     alpine:3.22 \
     tar -C /source -czf "/backup/$archive" .
 }
@@ -56,6 +58,12 @@ backup_volume prometheus-data prometheus-data.tar.gz
 backup_volume alertmanager-data alertmanager-data.tar.gz
 backup_volume uptime-kuma-data uptime-kuma-data.tar.gz
 backup_volume dockge-data dockge-data.tar.gz
+
+echo "Validating backup artifacts..."
+test -s "$DEST/mariadb-all-databases.sql"
+for archive in "$DEST"/*.tar.gz; do
+  gzip -t "$archive"
+done
 
 printf '%s\n' \
   "Created: $STAMP" \
