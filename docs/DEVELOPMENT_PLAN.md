@@ -53,10 +53,10 @@ Status: **Current**
 
 ### MariaDB metrics
 
-- Add Prometheus `mysqld_exporter`.
-- Keep exporter access private; do not publish MariaDB or exporter ports to the LAN.
-- Use a dedicated least-privilege database monitoring account.
-- Add the exporter as a Prometheus scrape target.
+- [x] Add Prometheus `mysqld_exporter`.
+- [x] Keep exporter access private; do not publish MariaDB or exporter ports to the LAN.
+- [x] Use a dedicated least-privilege database monitoring account.
+- [x] Add the exporter as a Prometheus scrape target and verify it UP.
 - Select and validate a MariaDB/MySQL Grafana dashboard.
 - Add the exact dashboard name/ID, datasource, prerequisites, and verification criteria to the dashboard checklist.
 
@@ -78,6 +78,7 @@ Tune thresholds from observed normal behavior. Avoid alerting on harmless transi
 
 Status: **Current**
 
+- [x] Migrate the production Uptime Kuma database from MariaDB 11 to MariaDB 12.3 LTS with a verified pre-upgrade backup and post-upgrade validation.
 - Track the latest supported MariaDB LTS series; the current target is MariaDB 12.3 LTS.
 - Apply patch/maintenance releases within the selected LTS promptly.
 - Surface new LTS releases for planned migration rather than ignoring them.
