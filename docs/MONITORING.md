@@ -83,6 +83,8 @@ After host metrics are working, add a cAdvisor-based Grafana dashboard. The cont
 
 Dashboard queries must match the labels exported by the cAdvisor version actually running. Do not assume an old community dashboard will work unchanged.
 
+The selected container dashboard is **cAdvisor exporter - Docker containers Overview**, Grafana dashboard ID **21743**. It has been verified against this stack and is working with the current cAdvisor metrics.
+
 Manual imports are acceptable while evaluating dashboards. Once a dashboard is selected and customized for ongoing use, prefer provisioning it from this repository.
 
 ## 5. Uptime Kuma monitoring
@@ -104,6 +106,67 @@ Initial monitors should include:
 Add application stacks as they are deployed. Prefer dedicated application health endpoints such as `/health`, `/healthz`, or `/api/health` when available. A TCP check proves only that a port accepts a connection; an HTTP health endpoint can verify more of the application stack.
 
 MariaDB is intentionally not exposed to the LAN and is normally monitored indirectly through Uptime Kuma health and Docker metrics unless a database-specific check is required.
+
+### Notifications
+
+The initial notification method for this deployment is **Email (SMTP)**. Uptime Kuma supports many additional notification providers, so the notification layer is intentionally not tied to email.
+
+To configure any notification provider:
+
+1. Open **Uptime Kuma**.
+2. Open **Settings > Notifications**.
+3. Choose **Setup Notification**.
+4. Select the desired notification provider.
+5. Enter the provider-specific connection information or credentials.
+6. Use **Test** to verify delivery before saving.
+7. Save the notification.
+8. Associate it with the appropriate monitors. Notification channels can be reused across multiple monitors.
+
+#### Email (SMTP)
+
+For email, select **Email (SMTP)** and configure the values required by the mail provider, normally:
+
+- SMTP hostname
+- SMTP port
+- SMTP security/TLS mode
+- username and password or provider-specific SMTP credential
+- From address
+- To address
+- optional CC/BCC
+- optional custom subject/body
+
+Common SMTP configurations use STARTTLS on port 587 or TLS on port 465, but the actual settings must match the selected mail provider. Do not disable TLS/STARTTLS merely to make a configuration work unless the SMTP server is intentionally trusted and designed for unencrypted SMTP.
+
+Use Uptime Kuma's **Test** function and confirm that the test message arrives before assigning the notification to production monitors.
+
+Do **not** store SMTP passwords or provider credentials in this repository.
+
+#### Other notification providers
+
+Uptime Kuma supports a large collection of built-in/integrated notification services. Examples include:
+
+- Discord
+- Slack
+- Microsoft Teams
+- Telegram
+- Gotify
+- Pushover
+- Signal
+- Mattermost
+- webhooks
+- Apprise, which can extend delivery to many additional services
+
+The exact fields vary by provider. Webhook-based providers typically require a webhook URL; API-based providers may require a token/key; messaging providers may require channel, room, or recipient identifiers.
+
+When enabling another provider, follow the same pattern: create it under **Settings > Notifications**, supply only the credentials required by that provider, test it, save it, and associate it with the desired monitors.
+
+Uptime Kuma's current notification-provider list is the authoritative source for available integrations because supported providers can change between releases.
+
+#### Multiple channels
+
+Multiple notification channels can coexist. A future configuration could, for example, use email for normal infrastructure alerts and add another provider for higher-priority or faster notifications.
+
+Avoid configuring every provider for every monitor by default. Notifications should remain actionable and low-noise.
 
 ## 6. Alerting
 
@@ -176,6 +239,8 @@ This avoids duplicating every check in every tool.
 - Prometheus configured for Prometheus, cAdvisor, Node Exporter, and Traefik.
 - Prometheus and Grafana persistent storage configured.
 - Prometheus datasource provisioned in Grafana.
+- Node Exporter Full dashboard (ID 1860) imported and working.
+- cAdvisor exporter - Docker containers Overview dashboard (ID 21743) imported and working.
 - Node Exporter collecting host metrics.
 - cAdvisor collecting container metrics.
 - Traefik Prometheus metrics enabled.
@@ -187,13 +252,11 @@ This avoids duplicating every check in every tool.
 
 ### In progress
 
-- Import/configure Node Exporter Full dashboard (ID 1860).
-- Select/configure a cAdvisor container dashboard.
+- Configure Uptime Kuma monitors and initial Email (SMTP) notification.
 
 ### Planned
 
-- Configure Uptime Kuma monitors.
-- Configure notification channels.
+- Add additional Uptime Kuma notification channels if useful.
 - Define useful host/container alerts.
 - Provision finalized dashboards from this repository.
 - Add application-specific monitoring as additional stacks are onboarded.
