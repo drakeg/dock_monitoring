@@ -1,0 +1,54 @@
+name: Validate monitoring configuration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      UPTIME_DB_PASSWORD: ci-only-database-password
+      UPTIME_DB_ROOT_PASSWORD: ci-only-root-password
+      MYSQLD_EXPORTER_PASSWORD: ci-only-exporter-password
+      GRAFANA_ADMIN_PASSWORD: ci-only-grafana-password
+      ALERTMANAGER_SMTP_PASSWORD: ci-only-smtp-password
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare CI Alertmanager configuration
+        run: |
+          cp alertmanager/alertmanager.yml.example alertmanager/alertmanager.yml
+          sed -i \
+            -e 's/ALERTMANAGER_EMAIL_TO_PLACEHOLDER/alerts@example.invalid/' \
+            -e 's/ALERTMANAGER_EMAIL_FROM_PLACEHOLDER/alerts@example.invalid/' \
+            -e 's/ALERTMANAGER_SMTP_USERNAME_PLACEHOLDER/alerts@example.invalid/' \
+            alertmanager/alertmanager.yml
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+      - name: Validate Prometheus configuration and rules
+        run: |
+          docker run --rm \
+            -v "$PWD/prometheus:/etc/prometheus:ro" \
+            --entrypoint /bin/promtool \
+            prom/prometheus:latest \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Alertmanager configuration
+        run: |
+          printf '%s' "$ALERTMANAGER_SMTP_PASSWORD" > /tmp/alertmanager-smtp-password
+          docker run --rm \
+            -v "$PWD/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            -v "/tmp/alertmanager-smtp-password:/run/secrets/alertmanager_smtp_password:ro" \
+            --entrypoint /bin/amtool \
+            prom/alertmanager:latest \
+            check-config /etc/alertmanager/alertmanager.yml
