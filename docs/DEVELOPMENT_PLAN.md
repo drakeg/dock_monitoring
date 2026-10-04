@@ -62,7 +62,7 @@ Status: **Current**
 
 ### Metrics-based alerts
 
-A source-controlled baseline rule set now covers the core conditions below. The next step is to validate/tune the thresholds and add tested notification delivery.
+A source-controlled baseline rule set now covers the core conditions below. Alertmanager configuration has been added for notification delivery; the next step is to deploy it, perform a controlled firing/resolved email test, and tune thresholds.
 
 Define and validate actionable alerts for:
 
