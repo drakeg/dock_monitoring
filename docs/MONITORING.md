@@ -41,6 +41,7 @@ Prometheus is the central metrics collector. Its scrape configuration is stored 
 | `cadvisor` | `cadvisor:8080` | Docker/container metrics |
 | `node-exporter` | `node-exporter:9100` | Linux host metrics |
 | `traefik` | `traefik:8082` | Reverse-proxy metrics |
+| `mariadb` | `mysqld-exporter:9104` | MariaDB database metrics |
 
 Prometheus is available on the LAN at `http://SERVER-IP:9091`. The **Status > Targets** page should show configured targets as healthy before Grafana dashboards are expected to work correctly. The default scrape and evaluation interval is 15 seconds.
 
@@ -278,7 +279,7 @@ This avoids duplicating every check in every tool.
 ### Completed
 
 - Docker Compose monitoring infrastructure deployed.
-- Prometheus configured for Prometheus, cAdvisor, Node Exporter, and Traefik.
+- Prometheus configured for Prometheus, cAdvisor, Node Exporter, Traefik, and MariaDB through `mysqld_exporter`.
 - Prometheus and Grafana persistent storage configured.
 - Prometheus datasource provisioned in Grafana.
 - Node Exporter Full dashboard (ID 1860) imported and working.
@@ -292,10 +293,14 @@ This avoids duplicating every check in every tool.
 - Restricted Docker Socket Proxy used for Traefik.
 - Uptime Kuma infrastructure monitors and IONOS Email (SMTP) notifications configured and verified.
 - Rootless Docker published-port issue documented; `monitoring` remains non-internal.
+- MariaDB upgraded from 11 to 12.3 LTS with a pre-upgrade logical backup and post-upgrade validation.
+- Dedicated least-privilege `mysqld_exporter` account configured.
+- `mariadb` Prometheus target at `mysqld-exporter:9104` verified **UP**; MariaDB/exporter ports remain private.
 
 ### In progress
 
-- Add MariaDB metrics through mysqld_exporter and validate a MariaDB/MySQL Grafana dashboard.
+- Select and validate a MariaDB/MySQL Grafana dashboard against the deployed `mysqld_exporter` metrics.
+- Define and validate low-noise Prometheus alert rules for host, target, container, and MariaDB conditions.
 
 ### Planned
 
@@ -386,6 +391,31 @@ After creating the database account and setting `MYSQLD_EXPORTER_PASSWORD`:
 5. Confirm exporter port 9104 and MariaDB port 3306 are not published to the LAN.
 6. Only after metrics are verified, select/import a MariaDB/MySQL Grafana dashboard and add it to the authoritative dashboard checklist.
 
+This deployment has completed these checks: the `mariadb` target is verified **UP** in Prometheus and the exporter is collecting from MariaDB 12.3 LTS without publishing ports 3306 or 9104 to the LAN.
+
 ### Version safety
 
 The production policy is to track the latest supported MariaDB LTS series. The current target is `mariadb:12.3`. Patch/maintenance updates within the selected LTS should be applied promptly. Moving to a newer LTS is expected rather than ignored, but because MariaDB is stateful the migration must include a verified backup, compatibility/release-note review, validation, and a documented restore path. Rolling/non-LTS releases are not the production target merely because their version number is higher.
+
+
+## MariaDB 11 to 12.3 LTS migration record
+
+The production deployment successfully migrated the existing Uptime Kuma database from MariaDB 11 to MariaDB 12.3 LTS without losing application data, monitors, or notification configuration.
+
+The validated migration pattern is:
+
+1. Create a timestamped logical backup with `mariadb-dump --all-databases --single-transaction --routines --events --triggers` and retain it outside the database volume.
+2. Pull the selected LTS image and recreate only `uptime-db`; do not use `docker compose down -v`.
+3. Wait for the MariaDB container health check to report healthy.
+4. Verify `SELECT VERSION();` reports the intended LTS version.
+5. Run `mariadb-upgrade` and require a successful result (or confirmation that no further upgrade is required).
+6. Verify the configured Uptime Kuma database still contains tables.
+7. Verify Uptime Kuma is healthy and confirm existing monitors and notification configuration are present.
+8. Verify the MariaDB Prometheus target is UP and `mysql_up` reports `1` after the exporter is deployed.
+9. Retain the pre-upgrade backup until the upgraded service has been observed operating normally and the rollback window has passed.
+
+An in-place downgrade is **not** the rollback strategy. Restore from the verified pre-upgrade backup into a compatible MariaDB instance if rollback is required.
+
+### Prometheus configuration reload note
+
+The Prometheus configuration file is bind-mounted read-only. After changing `prometheus/prometheus.yml`, verify the running container sees the expected configuration. If it does not, recreate Prometheus with `docker compose up -d --force-recreate prometheus` and re-check **Status > Targets**. This exact condition was encountered while enabling the MariaDB scrape job and was resolved by recreating Prometheus.
