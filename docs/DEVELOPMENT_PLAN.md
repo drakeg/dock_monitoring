@@ -143,7 +143,8 @@ Status: **Ongoing**
 - Require migration review for major/LTS stateful upgrades, but do not use migration risk as a reason to remain indefinitely on an older supported line.
 - Review network exposure and published ports.
 - Review Docker Socket Proxy permissions.
-- Review persistent-volume backup/restore procedures.
+- [x] Add documented backup/restore procedures and a reproducible backup script for MariaDB and stateful monitoring volumes.
+- Perform and document a non-production restore drill before considering disaster recovery fully validated.
 - Keep documentation synchronized with verified production behavior.
 - Remove obsolete workarounds after they are no longer needed.
 - Continue reducing manual configuration where doing so does not expose secrets or create unsafe automation.
