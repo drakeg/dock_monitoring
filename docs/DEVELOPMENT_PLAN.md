@@ -144,6 +144,7 @@ Status: **Ongoing**
 - Review network exposure and published ports.
 - Review Docker Socket Proxy permissions.
 - [x] Add documented backup/restore procedures and a reproducible backup script for MariaDB and stateful monitoring volumes.
+- [x] Execute and validate the first production backup: MariaDB logical dump, all configured volume archives, archive integrity checks, and automatic service restart completed successfully on 2026-10-04.
 - Perform and document a non-production restore drill before considering disaster recovery fully validated.
 - Keep documentation synchronized with verified production behavior.
 - Remove obsolete workarounds after they are no longer needed.
