@@ -12,7 +12,7 @@ The stack should remain host-OS agnostic wherever Docker provides the abstractio
 - Prefer Docker DNS and private networks for service-to-service communication.
 - Provide actionable, low-noise notifications.
 - Make ports, hostnames, credentials, and deployment-specific values configurable without editing Compose.
-- Avoid unsafe automatic major upgrades of stateful services.
+- Keep production dependencies on the latest appropriate supported LTS where the upstream project offers an LTS channel, while performing stateful LTS migrations deliberately and safely.
 - Document every required dashboard, exporter, monitor, alert, and operational dependency.
 
 ## Phase 1 — Infrastructure foundation
@@ -78,11 +78,14 @@ Tune thresholds from observed normal behavior. Avoid alerting on harmless transi
 
 Status: **Current**
 
-- Keep production MariaDB on the currently validated major release until a controlled migration is performed.
-- Configure dependency automation so major stateful-service upgrades require deliberate review.
+- Track the latest supported MariaDB LTS series; the current target is MariaDB 12.3 LTS.
+- Apply patch/maintenance releases within the selected LTS promptly.
+- Surface new LTS releases for planned migration rather than ignoring them.
+- Do not move production to rolling/non-LTS releases solely because their version number is newer.
+- Configure dependency automation so stateful major/LTS upgrades require deliberate review rather than unattended deployment.
 - Document backup, clean shutdown, upgrade, validation, `mariadb-upgrade`, and restore/rollback procedures.
 - Treat the pre-upgrade backup as the rollback path rather than assuming an in-place major-version downgrade is safe.
-- Review other stateful services for similar upgrade controls.
+- Review other stateful services for the same latest-supported-LTS policy where their upstream projects provide LTS channels.
 
 ## Phase 5 — Application onboarding
 
@@ -125,8 +128,9 @@ Status: **Planned**
 Status: **Ongoing**
 
 - Review container image updates and security fixes.
-- Apply stateless upgrades promptly when compatible.
-- Require migration review for major stateful upgrades.
+- Apply stateless stable/security upgrades promptly when compatible.
+- Prefer the latest supported LTS for production software when upstream provides an LTS channel.
+- Require migration review for major/LTS stateful upgrades, but do not use migration risk as a reason to remain indefinitely on an older supported line.
 - Review network exposure and published ports.
 - Review Docker Socket Proxy permissions.
 - Review persistent-volume backup/restore procedures.
