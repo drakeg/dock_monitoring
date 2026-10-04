@@ -54,6 +54,48 @@ http://prometheus:9090
 
 Grafana is available on the LAN at `http://SERVER-IP:3002`. Because Grafana and Prometheus communicate over the Docker network, Grafana should use `prometheus:9090`, not the host's published `9091` port.
 
+## Dashboard import checklist
+
+The dashboards below are the standard Grafana dashboards currently validated for this stack. Treat this table as the authoritative import checklist. Add dashboards here as they are selected and verified; do not require an untested community dashboard simply because it looks useful.
+
+| Required | Dashboard | Grafana ID | Datasource | Metrics source | Status |
+| --- | --- | ---: | --- | --- | --- |
+| Yes | Node Exporter Full | **1860** | Prometheus | Node Exporter | Verified working |
+| Yes | cAdvisor exporter - Docker containers Overview | **21743** | Prometheus | cAdvisor | Verified working |
+
+### Standard import procedure
+
+For every dashboard listed by Grafana ID:
+
+1. Open **Grafana > Dashboards**.
+2. Select **New > Import**.
+3. Enter the dashboard ID from the table above.
+4. Select **Load**.
+5. Select the provisioned **Prometheus** datasource when prompted.
+6. Select **Import**.
+7. Verify that panels populate with current data and that dashboard variables/drop-downs return expected hosts or containers.
+8. If a dashboard is customized, document the customization here and prefer exporting/provisioning the finalized JSON from this repository.
+
+### Verification
+
+**Node Exporter Full (1860)** is considered working when host-level panels populate, including CPU/load, memory, filesystem/disk, network, and uptime/system information.
+
+**cAdvisor exporter - Docker containers Overview (21743)** is considered working when container names are present and CPU, memory, network, and related container panels contain current data.
+
+If a required dashboard does not populate, verify **Prometheus > Status > Targets** before changing the dashboard. The relevant exporter target should be UP.
+
+### Future dashboards
+
+Additional dashboards may be added for Traefik, Prometheus itself, application-specific metrics, databases, or other exporters as the environment grows. Before a dashboard becomes part of the standard installation:
+
+1. Verify that its required exporter/metrics already exist or deliberately add them.
+2. Confirm its PromQL matches the labels produced by the deployed exporter version.
+3. Confirm useful panels populate.
+4. Avoid duplicating information already covered well by an existing dashboard.
+5. Record its exact name, Grafana ID (or repository JSON path), datasource, prerequisites, and purpose in this checklist.
+6. Mark it required or optional.
+7. Prefer repository-provisioned dashboard JSON after customization/stabilization.
+
 ## 3. Host dashboard
 
 The first dashboard being configured is **Node Exporter Full**, Grafana dashboard ID **1860**.
