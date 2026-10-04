@@ -388,4 +388,4 @@ After creating the database account and setting `MYSQLD_EXPORTER_PASSWORD`:
 
 ### Version safety
 
-The Compose baseline intentionally remains on `mariadb:11` until a controlled major-version migration is performed. Major stateful-service upgrades require backup, migration review, validation, and a documented restore path; they must not be applied as ordinary image refreshes.
+The production policy is to track the latest supported MariaDB LTS series. The current target is `mariadb:12.3`. Patch/maintenance updates within the selected LTS should be applied promptly. Moving to a newer LTS is expected rather than ignored, but because MariaDB is stateful the migration must include a verified backup, compatibility/release-note review, validation, and a documented restore path. Rolling/non-LTS releases are not the production target merely because their version number is higher.
