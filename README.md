@@ -293,6 +293,12 @@ The stack defines:
 
 Back up these volumes according to the recovery requirements of the environment.
 
+## Monitoring and dashboarding
+
+The deployment details in this README are complemented by a dedicated operational guide covering Prometheus targets, Grafana dashboards, Uptime Kuma monitors, alerting, application onboarding, and the plan to move finalized dashboards/alerts into source control.
+
+See [docs/MONITORING.md](docs/MONITORING.md).
+
 ## Planned monitoring configuration
 
 The infrastructure is ready for application-level configuration. Planned next steps include:
