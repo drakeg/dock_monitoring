@@ -167,6 +167,23 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro,Z
+      - alertmanager-data:/alertmanager
+    secrets:
+      - alertmanager_smtp_password
+    networks:
+      - monitoring
+    security_opt:
+      - no-new-privileges:true
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -188,6 +205,7 @@ services:
     depends_on:
       - cadvisor
       - node-exporter
+      - alertmanager
     security_opt:
       - no-new-privileges:true
 
@@ -279,3 +297,9 @@ volumes:
     name: uptime-db-data
   dockge-data:
     name: dockge-data
+  alertmanager-data:
+    name: alertmanager-data
+
+secrets:
+  alertmanager_smtp_password:
+    environment: ALERTMANAGER_SMTP_PASSWORD
