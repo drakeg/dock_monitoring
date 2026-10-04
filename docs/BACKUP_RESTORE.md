@@ -49,6 +49,24 @@ After every backup:
 
 The first full backup was executed successfully on 2026-10-04. The MariaDB logical dump completed, all configured named-volume archives completed, automatic integrity validation passed, and the temporarily stopped services restarted successfully. This verifies backup creation; disaster recovery remains incomplete until a restore drill succeeds on a non-production/test Docker host.
 
+## Non-production MariaDB restore drill
+
+Use the isolated restore test to prove that a backup can be imported without touching the live MariaDB container or volume:
+
+```bash
+bash scripts/test-mariadb-restore.sh
+```
+
+By default it selects the newest timestamped directory under `BACKUP_DIR`. To test a specific backup:
+
+```bash
+bash scripts/test-mariadb-restore.sh /path/to/backups/20261004-010131
+```
+
+The test creates a temporary MariaDB 12.3 container and named volume, imports the SQL dump, verifies that the configured Uptime Kuma database exists and contains tables, reports the table count, and removes the temporary resources automatically. The live `uptime-db` container and `uptime-db-data` volume are never used by the drill.
+
+A passing drill proves the SQL backup can initialize a fresh MariaDB instance and restore the expected application schema/data. It does not replace a full application-level disaster-recovery exercise.
+
 ## Restore principles
 
 Restore into compatible software versions. Use `MANIFEST.txt` and repository history to identify the configuration/image generation that produced the backup.
