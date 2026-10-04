@@ -1,0 +1,80 @@
+groups:
+  - name: infrastructure
+    rules:
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus target down"
+          description: "{{ $labels.job }} target {{ $labels.instance }} has been unreachable for 5 minutes."
+
+      - alert: HostFilesystemLowSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            /
+            node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          ) < 0.10
+          and
+          node_filesystem_readonly{fstype!~"tmpfs|overlay|squashfs"} == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host filesystem below 10% free"
+          description: "{{ $labels.instance }} filesystem {{ $labels.mountpoint }} has had less than 10% free space for 15 minutes."
+
+      - alert: HostMemoryPressure
+        expr: |
+          (
+            node_memory_MemAvailable_bytes
+            /
+            node_memory_MemTotal_bytes
+          ) < 0.10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host memory pressure"
+          description: "{{ $labels.instance }} has had less than 10% available memory for 15 minutes."
+
+      - alert: HostHighCPU
+        expr: |
+          (
+            1 - avg by (instance) (
+              rate(node_cpu_seconds_total{mode="idle"}[5m])
+            )
+          ) > 0.90
+        for: 20m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sustained high host CPU"
+          description: "{{ $labels.instance }} CPU utilization has exceeded 90% for 20 minutes."
+
+  - name: mariadb
+    rules:
+      - alert: MariaDBDown
+        expr: mysql_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MariaDB exporter cannot reach MariaDB"
+          description: "mysqld_exporter has reported MariaDB unavailable for 2 minutes."
+
+      - alert: MariaDBConnectionsHigh
+        expr: |
+          (
+            mysql_global_status_threads_connected
+            /
+            mysql_global_variables_max_connections
+          ) > 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MariaDB connection usage above 80%"
+          description: "MariaDB connection usage has exceeded 80% of max_connections for 10 minutes."
