@@ -313,3 +313,38 @@ The monitoring system should remain:
 - **Layered** — metrics and availability checks complement rather than duplicate each other.
 - **Secure** — databases, exporters, and Docker API access stay off the LAN unless necessary.
 - **Portable** — host-specific values remain environment configuration or clearly documented deployment steps.
+
+
+## Uptime Kuma infrastructure monitor baseline
+
+The following infrastructure monitors have been configured and verified working. Use Docker service/container DNS names for internal service monitoring rather than the host LAN address and published host ports.
+
+| Monitor | Type | Target | Status |
+| --- | --- | --- | --- |
+| Prometheus | HTTP(s) | `http://prometheus:9090` | Verified UP |
+| Grafana | HTTP(s) | `http://grafana:3000` | Verified UP |
+| Dockge | HTTP(s) | `http://dockge:5001` | Verified UP |
+| Traefik Metrics | HTTP(s) | `http://traefik:8082/metrics` | Verified UP |
+
+### Standard alert settings
+
+Use these defaults for the infrastructure monitors unless a service has a documented reason to differ:
+
+- Heartbeat interval: **60 seconds**
+- Retries: **3**
+- Retry interval: **30 seconds**
+- Notification: the configured **Mad Mallards email/SMTP** notification
+- HTTP status: require a successful HTTP response appropriate to the endpoint
+
+These settings reduce noise from brief container restarts while still detecting sustained failures quickly.
+
+### Docker DNS requirement
+
+Container-name monitoring requires Uptime Kuma and the monitored service to share at least one Docker network. Uptime Kuma is attached to `monitoring` for Prometheus/Grafana/Traefik and to `proxy` for Dockge. If a monitor reports `getaddrinfo ENOTFOUND <service>`, verify shared network membership before substituting the host IP.
+
+Internal Docker-DNS checks validate the application/service directly and avoid unnecessary dependency on host port publishing. They do **not** prove that a published LAN port or external route is reachable. Add a separate path-level or external monitor when that distinction matters.
+
+### Uptime Kuma availability
+
+Do not treat a Uptime Kuma self-monitor as sufficient availability monitoring. If the Kuma container, Docker host, network, power, or site fails, that same Kuma instance may be unable to send the outage notification. A future independent/external monitor should check Uptime Kuma or another externally reachable endpoint on this infrastructure.
+
