@@ -290,11 +290,12 @@ This avoids duplicating every check in every tool.
 - Dockge deployed for Compose management.
 - Management services available on selected LAN ports.
 - Restricted Docker Socket Proxy used for Traefik.
+- Uptime Kuma infrastructure monitors and IONOS Email (SMTP) notifications configured and verified.
 - Rootless Docker published-port issue documented; `monitoring` remains non-internal.
 
 ### In progress
 
-- Configure Uptime Kuma monitors and initial Email (SMTP) notification.
+- Add MariaDB metrics through mysqld_exporter and validate a MariaDB/MySQL Grafana dashboard.
 
 ### Planned
 
@@ -348,3 +349,43 @@ Internal Docker-DNS checks validate the application/service directly and avoid u
 
 Do not treat a Uptime Kuma self-monitor as sufficient availability monitoring. If the Kuma container, Docker host, network, power, or site fails, that same Kuma instance may be unable to send the outage notification. A future independent/external monitor should check Uptime Kuma or another externally reachable endpoint on this infrastructure.
 
+
+
+## MariaDB observability
+
+MariaDB remains private on the `uptime-db` Docker network. Database metrics are collected by Prometheus through `mysqld_exporter`; neither MariaDB port 3306 nor exporter port 9104 is published to the LAN.
+
+The exporter also joins `monitoring` so Prometheus can scrape `mysqld-exporter:9104`.
+
+### Monitoring account
+
+Create a dedicated database account rather than using the MariaDB root or Uptime Kuma application account. The exporter project's documented baseline grants are `PROCESS`, `REPLICATION CLIENT`, and `SELECT`. Limit the account to a small number of connections.
+
+Generate a unique password and place the same value in the local, uncommitted `.env` as `MYSQLD_EXPORTER_PASSWORD`. Do not commit the password.
+
+Example SQL, run as an administrative MariaDB user:
+
+```sql
+CREATE USER 'exporter'@'%' IDENTIFIED BY 'REPLACE_WITH_EXPORTER_PASSWORD'
+  WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+```
+
+The `%` host is used because the exporter is a separate container with a dynamic address on the private Docker network. Network isolation and the absence of a published MariaDB port prevent this from making the database publicly reachable.
+
+The exporter itself is configured for no more than two open connections per scrape, below the database user's three-connection limit.
+
+### Verification
+
+After creating the database account and setting `MYSQLD_EXPORTER_PASSWORD`:
+
+1. Start/recreate `mysqld-exporter` and Prometheus with Docker Compose.
+2. Open **Prometheus > Status > Targets**.
+3. Verify the `mariadb` target at `mysqld-exporter:9104` is **UP**.
+4. Query `mysql_up`; the expected value is `1`.
+5. Confirm exporter port 9104 and MariaDB port 3306 are not published to the LAN.
+6. Only after metrics are verified, select/import a MariaDB/MySQL Grafana dashboard and add it to the authoritative dashboard checklist.
+
+### Version safety
+
+The Compose baseline intentionally remains on `mariadb:11` until a controlled major-version migration is performed. Major stateful-service upgrades require backup, migration review, validation, and a documented restore path; they must not be applied as ordinary image refreshes.
