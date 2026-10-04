@@ -179,6 +179,7 @@ services:
       - "--web.listen-address=0.0.0.0:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,Z
+      - ./prometheus/rules:/etc/prometheus/rules:ro,Z
       - prometheus-data:/prometheus
     ports:
       - "9091:9090"

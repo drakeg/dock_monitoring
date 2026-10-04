@@ -57,10 +57,12 @@ Status: **Current**
 - [x] Keep exporter access private; do not publish MariaDB or exporter ports to the LAN.
 - [x] Use a dedicated least-privilege database monitoring account.
 - [x] Add the exporter as a Prometheus scrape target and verify it UP.
-- Select and validate a MariaDB/MySQL Grafana dashboard.
-- Add the exact dashboard name/ID, datasource, prerequisites, and verification criteria to the dashboard checklist.
+- [x] Select and validate the **mysql overview** Grafana dashboard, ID **14969**, against the deployed exporter.
+- [x] Add the exact dashboard name/ID, datasource, prerequisites, and verification criteria to the dashboard checklist.
 
 ### Metrics-based alerts
+
+A source-controlled baseline rule set now covers the core conditions below. The next step is to validate/tune the thresholds and add tested notification delivery.
 
 Define and validate actionable alerts for:
 
