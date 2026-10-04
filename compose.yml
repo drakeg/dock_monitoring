@@ -243,6 +243,20 @@ services:
       - no-new-privileges:true
       - label=disable
 
+  grafana-dashboard-init:
+    image: alpine:3.22
+    container_name: grafana-dashboard-init
+    restart: "no"
+    command:
+      - /bin/sh
+      - -c
+      - apk add --no-cache wget >/dev/null && /scripts/fetch-grafana-dashboards.sh /dashboards
+    volumes:
+      - ./scripts/fetch-grafana-dashboards.sh:/scripts/fetch-grafana-dashboards.sh:ro,Z
+      - grafana-dashboard-data:/dashboards
+    security_opt:
+      - no-new-privileges:true
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -255,13 +269,17 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro,Z
+      - grafana-dashboard-data:/var/lib/grafana/provisioned-dashboards:ro
     ports:
       - "${GRAFANA_PORT:-3002}:3000"
     networks:
       - proxy
       - monitoring
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_started
+      grafana-dashboard-init:
+        condition: service_completed_successfully
     labels:
       - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
       - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
@@ -291,6 +309,8 @@ volumes:
     name: prometheus-data
   grafana-data:
     name: grafana-data
+  grafana-dashboard-data:
+    name: grafana-dashboard-data
   uptime-kuma-data:
     name: uptime-kuma-data
   uptime-db-data:
