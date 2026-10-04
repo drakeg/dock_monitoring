@@ -28,3 +28,6 @@ tmp/
 *.bak
 *.backup
 *.old
+
+# Local Alertmanager configuration contains deployment-specific email addresses
+alertmanager/alertmanager.yml
