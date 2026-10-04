@@ -145,7 +145,8 @@ Status: **Ongoing**
 - Review Docker Socket Proxy permissions.
 - [x] Add documented backup/restore procedures and a reproducible backup script for MariaDB and stateful monitoring volumes.
 - [x] Execute and validate the first production backup: MariaDB logical dump, all configured volume archives, archive integrity checks, and automatic service restart completed successfully on 2026-10-04.
-- Perform and document a non-production restore drill before considering disaster recovery fully validated.
+- [x] Add an isolated, non-production MariaDB restore drill that verifies the expected Uptime Kuma database and tables without touching live state.
+- Execute the restore drill successfully before considering MariaDB disaster recovery validated.
 - Keep documentation synchronized with verified production behavior.
 - Remove obsolete workarounds after they are no longer needed.
 - Continue reducing manual configuration where doing so does not expose secrets or create unsafe automation.
