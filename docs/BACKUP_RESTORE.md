@@ -33,14 +33,14 @@ BACKUP_DIR=/path/to/backup-storage ./scripts/backup.sh
 
 The destination should ideally be on storage independent of the Docker host. A backup that exists only on the same disk as the monitored host does not protect against host/disk loss.
 
-The script creates a timestamped directory containing the MariaDB SQL dump, volume archives, and `MANIFEST.txt`. It briefly stops Grafana, Prometheus, Alertmanager, Uptime Kuma, and Dockge while archiving their volumes, then restarts them automatically. MariaDB uses a transactional logical dump and is not archived live.
+The script loads `BACKUP_DIR` from `.env` when present, also accepts an exported environment override, and supports both relative and absolute destinations. It creates a timestamped directory containing the MariaDB SQL dump, volume archives, and `MANIFEST.txt`. It briefly stops Grafana, Prometheus, Alertmanager, Uptime Kuma, and Dockge while archiving their volumes, then restarts them automatically. MariaDB uses a transactional logical dump and is not archived live.
 
 ## Verify backups
 
 After every backup:
 
-1. Require a non-empty `mariadb-all-databases.sql`.
-2. Run `gzip -t` against every `.tar.gz` archive.
+1. Require a non-empty `mariadb-all-databases.sql` (the backup script checks this automatically).
+2. Run `gzip -t` against every `.tar.gz` archive (the backup script checks this automatically).
 3. Review `MANIFEST.txt`.
 4. Confirm the stopped services returned to a healthy/running state.
 5. Periodically perform a restore drill on a non-production/test Docker host. Archive existence alone is not proof of recoverability.
