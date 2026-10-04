@@ -455,3 +455,18 @@ An in-place downgrade is **not** the rollback strategy. Restore from the verifie
 ### Prometheus configuration reload note
 
 The Prometheus configuration file is bind-mounted read-only. After changing `prometheus/prometheus.yml`, verify the running container sees the expected configuration. If it does not, recreate Prometheus with `docker compose up -d --force-recreate prometheus` and re-check **Status > Targets**. This exact condition was encountered while enabling the MariaDB scrape job and was resolved by recreating Prometheus.
+
+
+## Grafana dashboard provisioning
+
+The validated baseline dashboards are provisioned automatically into the **Infrastructure** folder. A one-shot `grafana-dashboard-init` service downloads explicitly pinned Grafana.com revisions into the `grafana-dashboard-data` volume before Grafana starts. The bootstrap script rewrites Grafana.com datasource import placeholders to the stable provisioned Prometheus datasource UID `prometheus`.
+
+| Dashboard | ID | Pinned revision | Datasource | Status |
+| --- | ---: | ---: | --- | --- |
+| Node Exporter Full | 1860 | 45 | Prometheus | Required / previously validated |
+| cAdvisor exporter - Docker containers Overview | 21743 | 3 | Prometheus | Required / previously validated |
+| mysql overview | 14969 | 1 | Prometheus | Required / previously validated |
+
+Revisions are intentionally pinned. Do not advance a revision merely because a newer one exists; first validate it against the current exporters, labels, and Grafana release.
+
+The first bootstrap requires outbound HTTPS access to Grafana.com. After download, the pinned JSON is retained in the named dashboard volume. A fresh host therefore requires Grafana.com to be reachable during initial dashboard bootstrap.
