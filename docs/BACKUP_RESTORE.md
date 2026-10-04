@@ -45,6 +45,10 @@ After every backup:
 4. Confirm the stopped services returned to a healthy/running state.
 5. Periodically perform a restore drill on a non-production/test Docker host. Archive existence alone is not proof of recoverability.
 
+## Verified backup baseline
+
+The first full backup was executed successfully on 2026-10-04. The MariaDB logical dump completed, all configured named-volume archives completed, automatic integrity validation passed, and the temporarily stopped services restarted successfully. This verifies backup creation; disaster recovery remains incomplete until a restore drill succeeds on a non-production/test Docker host.
+
 ## Restore principles
 
 Restore into compatible software versions. Use `MANIFEST.txt` and repository history to identify the configuration/image generation that produced the backup.
