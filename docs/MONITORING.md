@@ -63,6 +63,7 @@ The dashboards below are the standard Grafana dashboards currently validated for
 | --- | --- | ---: | --- | --- | --- |
 | Yes | Node Exporter Full | **1860** | Prometheus | Node Exporter | Verified working |
 | Yes | cAdvisor exporter - Docker containers Overview | **21743** | Prometheus | cAdvisor | Verified working |
+| Yes | mysql overview | **14969** | Prometheus | mysqld_exporter | Verified working |
 
 ### Standard import procedure
 
@@ -82,6 +83,8 @@ For every dashboard listed by Grafana ID:
 **Node Exporter Full (1860)** is considered working when host-level panels populate, including CPU/load, memory, filesystem/disk, network, and uptime/system information.
 
 **cAdvisor exporter - Docker containers Overview (21743)** is considered working when container names are present and CPU, memory, network, and related container panels contain current data.
+
+**mysql overview (14969)** is considered working when MariaDB status, connections, traffic/query activity, and other database panels populate from the `mariadb` Prometheus job. It has been verified against this stack's current `prom/mysqld-exporter` and MariaDB 12.3 LTS deployment.
 
 If a required dashboard does not populate, verify **Prometheus > Status > Targets** before changing the dashboard. The relevant exporter target should be UP.
 
@@ -221,7 +224,18 @@ Alerts should be actionable and low-noise.
 
 **Container alerts:** sustained abnormal CPU usage, memory approaching a configured limit, repeated unavailability, or unexpectedly missing metrics from important containers.
 
-Tune thresholds from observed normal behavior rather than treating generic example thresholds as production defaults.
+The repository now provides an initial rule set at `prometheus/rules/alerts.yml`. Prometheus loads these rules directly from source control. The initial thresholds intentionally require sustained conditions:
+
+- any Prometheus target down for 5 minutes;
+- writable host filesystem below 10% free for 15 minutes;
+- host available memory below 10% for 15 minutes;
+- host CPU above 90% for 20 minutes;
+- `mysql_up == 0` for 2 minutes;
+- MariaDB connections above 80% of `max_connections` for 10 minutes.
+
+These are baseline detection rules, not a substitute for tuning. Review firing/pending behavior against normal workload and adjust thresholds before treating every warning as urgent. Availability checks already handled well by Uptime Kuma should not be duplicated with shorter/noisier thresholds.
+
+Prometheus evaluates and exposes these alerts, but **notification delivery is a separate concern**. Do not assume a rule will send email merely because it appears in Prometheus. A notification path (for example Alertmanager or deliberately configured Grafana alert delivery) must be added and tested before metrics alerts are considered end-to-end complete.
 
 ## 7. Application onboarding
 
