@@ -49,7 +49,7 @@ Status: **Completed**
 
 ## Phase 3 — Database observability and alerting
 
-Status: **Current**
+Status: **Completed**
 
 ### MariaDB metrics
 
@@ -62,7 +62,7 @@ Status: **Current**
 
 ### Metrics-based alerts
 
-A source-controlled baseline rule set now covers the core conditions below. Alertmanager configuration has been added for notification delivery; the next step is to deploy it, perform a controlled firing/resolved email test, and tune thresholds.
+A source-controlled baseline rule set covers the core conditions below. Alertmanager notification delivery has been deployed and verified end-to-end with controlled FIRING and RESOLVED email tests. Continue tuning thresholds only from observed production behavior.
 
 Define and validate actionable alerts for:
 
@@ -73,6 +73,13 @@ Define and validate actionable alerts for:
 - Important container disappearance/unavailability where metrics can reliably identify it.
 - MariaDB/exporter availability.
 - Database connection/resource conditions that are genuinely actionable.
+
+- [x] Source-controlled Prometheus baseline alert rules.
+- [x] Internal Alertmanager integration.
+- [x] SMTP notification delivery without committed credentials.
+- [x] Controlled FIRING notification test.
+- [x] Controlled RESOLVED notification test.
+- [x] Temporary notification-test rule removed after validation.
 
 Tune thresholds from observed normal behavior. Avoid alerting on harmless transient events already handled by Kuma retries.
 

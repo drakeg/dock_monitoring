@@ -254,6 +254,8 @@ After configuration:
 6. Resolve the test condition and confirm a resolved notification is received.
 7. Remove/disable the test rule after successful verification.
 
+This deployment completed that validation using a temporary `MonitoringNotificationTest` rule. The FIRING email and subsequent RESOLVED email were both received successfully, and the temporary rule was removed afterward. The metrics notification path is therefore verified end-to-end.
+
 Do not consider metrics alerting complete until both firing and resolved email delivery have been tested.
 
 ## 7. Application onboarding
@@ -329,11 +331,12 @@ This avoids duplicating every check in every tool.
 - MariaDB upgraded from 11 to 12.3 LTS with a pre-upgrade logical backup and post-upgrade validation.
 - Dedicated least-privilege `mysqld_exporter` account configured.
 - `mariadb` Prometheus target at `mysqld-exporter:9104` verified **UP**; MariaDB/exporter ports remain private.
+- Alertmanager deployed privately on the monitoring network and connected to Prometheus.
+- Metrics-based SMTP notification delivery verified end-to-end with both FIRING and RESOLVED test emails.
 
 ### In progress
 
-- Deploy and validate Alertmanager SMTP notification delivery for the source-controlled Prometheus rules.
-- Perform a controlled firing/resolved alert test and tune thresholds from observed normal behavior.
+- Tune production alert thresholds from observed normal behavior and adjust only when evidence shows a rule is too noisy or too insensitive.
 
 ### Planned
 
