@@ -131,7 +131,7 @@ Status: **Planned**
 - Store Prometheus alert rules in source control.
 - Evaluate reproducible Uptime Kuma monitor configuration/backup approaches.
 - Never commit notification credentials, database passwords, API tokens, or other secrets.
-- Add validation/tests for Compose and monitoring configuration in CI.
+- [x] Add validation/tests for Compose, Prometheus rules/configuration, and Alertmanager configuration in CI.
 
 ## Phase 8 — Operations and hardening
 
