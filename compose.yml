@@ -92,7 +92,7 @@ services:
       - no-new-privileges:true
 
   uptime-db:
-    image: mariadb:13
+    image: mariadb:11
     container_name: uptime-db
     restart: unless-stopped
     environment:
@@ -114,6 +114,25 @@ services:
       interval: 15s
       timeout: 10s
       retries: 10
+    security_opt:
+      - no-new-privileges:true
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: mysqld-exporter
+    restart: unless-stopped
+    depends_on:
+      uptime-db:
+        condition: service_healthy
+    command:
+      - "--mysqld.address=uptime-db:3306"
+      - "--mysqld.username=${MYSQLD_EXPORTER_USER:-exporter}"
+      - "--exporter.max_open_connections=2"
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MYSQLD_EXPORTER_PASSWORD:?Set MYSQLD_EXPORTER_PASSWORD in .env}
+    networks:
+      - uptime-db
+      - monitoring
     security_opt:
       - no-new-privileges:true
 
