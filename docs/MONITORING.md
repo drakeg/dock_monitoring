@@ -25,7 +25,8 @@ Each component has a distinct responsibility:
 - **Node Exporter** exposes Linux host metrics.
 - **cAdvisor** exposes Docker/container resource metrics.
 - **Traefik** exposes reverse-proxy metrics.
-- **Prometheus** scrapes, stores, and queries time-series metrics.
+- **Prometheus** scrapes, stores, queries time-series metrics, and evaluates alert rules.
+- **Alertmanager** receives firing Prometheus alerts, groups/deduplicates them, and delivers metrics-based notifications.
 - **Grafana** turns Prometheus data into dashboards and visualizations.
 - **Uptime Kuma** actively checks whether services are reachable and healthy.
 - **MariaDB** stores Uptime Kuma application data.
@@ -235,7 +236,25 @@ The repository now provides an initial rule set at `prometheus/rules/alerts.yml`
 
 These are baseline detection rules, not a substitute for tuning. Review firing/pending behavior against normal workload and adjust thresholds before treating every warning as urgent. Availability checks already handled well by Uptime Kuma should not be duplicated with shorter/noisier thresholds.
 
-Prometheus evaluates and exposes these alerts, but **notification delivery is a separate concern**. Do not assume a rule will send email merely because it appears in Prometheus. A notification path (for example Alertmanager or deliberately configured Grafana alert delivery) must be added and tested before metrics alerts are considered end-to-end complete.
+Prometheus sends firing rules to an internal Alertmanager service at `alertmanager:9093`. Alertmanager is not published to the LAN. It groups/deduplicates notifications and sends metrics-based email through the configured SMTP mailbox.
+
+### Alertmanager SMTP setup
+
+The committed `alertmanager/alertmanager.yml.example` is a template. Copy it to the ignored local file `alertmanager/alertmanager.yml` and replace the three non-secret placeholders for recipient address, sender address, and SMTP username. Keep the mailbox password in `.env` as `ALERTMANAGER_SMTP_PASSWORD`; Compose provides it to Alertmanager as a runtime secret and Alertmanager reads it through `smtp_auth_password_file`.
+
+The default SMTP endpoint is `smtp.ionos.com:587` with TLS required. The local Alertmanager configuration file and `.env` must never be committed.
+
+After configuration:
+
+1. Run `docker compose config` and confirm configuration renders without errors.
+2. Start/recreate `alertmanager` and `prometheus`.
+3. Verify Prometheus **Status > Alertmanagers** shows `alertmanager:9093` as active.
+4. Verify Alertmanager logs show successful configuration loading and no SMTP/configuration errors.
+5. Trigger a controlled test alert and confirm an email is received.
+6. Resolve the test condition and confirm a resolved notification is received.
+7. Remove/disable the test rule after successful verification.
+
+Do not consider metrics alerting complete until both firing and resolved email delivery have been tested.
 
 ## 7. Application onboarding
 
@@ -283,7 +302,7 @@ Do not commit notification credentials, API tokens, passwords, or other secrets.
 | Visual dashboards | Grafana |
 | Availability/health checks | Uptime Kuma |
 | Availability notifications | Uptime Kuma |
-| Metrics-based alerts | Grafana/Prometheus |
+| Metrics-based alerts | Prometheus + Alertmanager |
 | Compose administration | Dockge |
 
 This avoids duplicating every check in every tool.
@@ -313,8 +332,8 @@ This avoids duplicating every check in every tool.
 
 ### In progress
 
-- Select and validate a MariaDB/MySQL Grafana dashboard against the deployed `mysqld_exporter` metrics.
-- Define and validate low-noise Prometheus alert rules for host, target, container, and MariaDB conditions.
+- Deploy and validate Alertmanager SMTP notification delivery for the source-controlled Prometheus rules.
+- Perform a controlled firing/resolved alert test and tune thresholds from observed normal behavior.
 
 ### Planned
 
