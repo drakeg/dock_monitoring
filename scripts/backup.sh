@@ -25,12 +25,12 @@ echo "Creating MariaDB logical backup..."
 docker exec uptime-db mariadb-dump \
   -uroot \
   -p"$UPTIME_DB_ROOT_PASSWORD" \
-  --all-databases \
+  --databases "${UPTIME_DB_NAME:-uptime_kuma}" \
   --single-transaction \
   --routines \
   --events \
   --triggers \
-  > "$DEST/mariadb-all-databases.sql"
+  > "$DEST/mariadb-uptime-kuma.sql"
 
 backup_volume() {
   local volume="$1"
@@ -60,7 +60,7 @@ backup_volume uptime-kuma-data uptime-kuma-data.tar.gz
 backup_volume dockge-data dockge-data.tar.gz
 
 echo "Validating backup artifacts..."
-test -s "$DEST/mariadb-all-databases.sql"
+test -s "$DEST/mariadb-uptime-kuma.sql"
 for archive in "$DEST"/*.tar.gz; do
   gzip -t "$archive"
 done
