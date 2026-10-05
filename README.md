@@ -335,3 +335,28 @@ cp alertmanager/alertmanager.yml.example alertmanager/alertmanager.yml
 ```
 
 Then replace the non-secret email address/username placeholders in `alertmanager/alertmanager.yml` and set `ALERTMANAGER_SMTP_PASSWORD` in `.env`. Compose uses a bind mount with host-path creation disabled, so a missing config now fails clearly instead of Docker creating an `alertmanager.yml` directory.
+
+
+### cAdvisor on rootless Docker
+
+cAdvisor needs both the Docker daemon socket and Docker data root. The defaults target rootful Docker:
+
+```dotenv
+DOCKER_SOCKET_PATH=/var/run/docker.sock
+DOCKER_DATA_ROOT=/var/lib/docker
+```
+
+For a rootless Docker installation, set both values to that user's Docker locations. For example, for UID/user `drakeg` on the Fedora development host:
+
+```dotenv
+DOCKER_SOCKET_PATH=/run/user/1000/docker.sock
+DOCKER_DATA_ROOT=/home/drakeg/.local/share/docker
+```
+
+After changing either value, recreate cAdvisor so the bind mounts are updated:
+
+```bash
+docker compose up -d --force-recreate cadvisor prometheus
+```
+
+Verify the Prometheus cAdvisor target is UP and that cAdvisor exports `container_*` metrics before troubleshooting Grafana dashboard queries.
