@@ -39,7 +39,7 @@ The script loads `BACKUP_DIR` from `.env` when present, also accepts an exported
 
 After every backup:
 
-1. Require a non-empty `mariadb-all-databases.sql` (the backup script checks this automatically).
+1. Require a non-empty `mariadb-uptime-kuma.sql` (the backup script checks this automatically).
 2. Run `gzip -t` against every `.tar.gz` archive (the backup script checks this automatically).
 3. Review `MANIFEST.txt`.
 4. Confirm the stopped services returned to a healthy/running state.
@@ -78,7 +78,7 @@ Never use `docker compose down -v` during an ordinary restore unless the explici
 The SQL dump is the authoritative MariaDB backup. For a disaster restore, start with an empty compatible MariaDB data volume, wait for MariaDB to initialize, then import the dump:
 
 ```bash
-cat /path/to/mariadb-all-databases.sql | \
+cat /path/to/mariadb-uptime-kuma.sql | \
   docker exec -i uptime-db mariadb -uroot -p"$UPTIME_DB_ROOT_PASSWORD"
 ```
 
@@ -124,3 +124,8 @@ A restore is complete only after:
 - Uptime Kuma monitors and notifications are present;
 - MariaDB metrics report `mysql_up == 1`; and
 - a controlled notification test succeeds when the notification path itself was restored or changed.
+
+
+### Database backup scope
+
+The logical MariaDB backup deliberately contains the configured Uptime Kuma application database only. MariaDB system schemas and account tables are not treated as application state. Database users and privileges are recreated from deployment configuration/documented setup during disaster recovery. This avoids restoring stale authentication state into a fresh MariaDB instance and makes the isolated restore drill deterministic.
