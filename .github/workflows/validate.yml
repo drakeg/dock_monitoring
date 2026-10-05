@@ -52,3 +52,15 @@ jobs:
             --entrypoint /bin/amtool \
             prom/alertmanager:latest \
             check-config /etc/alertmanager/alertmanager.yml
+
+      - name: Validate Grafana dashboard bootstrap
+        run: |
+          docker compose run --rm grafana-dashboard-init
+          docker run --rm \
+            -v grafana-dashboard-data:/dashboards:ro \
+            alpine:3.24 \
+            /bin/sh -c 'test -s /dashboards/node-exporter-full.json && test -s /dashboards/cadvisor-docker-overview.json && test -s /dashboards/mysql-overview.json'
+
+      - name: Validate repository Grafana dashboards
+        run: |
+          python -m json.tool grafana/dashboards/monitoring-overview.json >/dev/null
