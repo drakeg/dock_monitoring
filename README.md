@@ -360,3 +360,26 @@ docker compose up -d --force-recreate cadvisor prometheus
 ```
 
 Verify the Prometheus cAdvisor target is UP and that cAdvisor exports `container_*` metrics before troubleshooting Grafana dashboard queries.
+
+
+### Container metrics backend
+
+Prometheus uses `docker-exporter` for per-container CPU, memory, network, block-I/O, state, health, and lifecycle metrics. It reads Docker's stats API through the existing read-only Docker socket and exposes cAdvisor-compatible metric names, allowing the existing container Grafana dashboard to remain useful without requiring cAdvisor's privileged host inspection.
+
+cAdvisor remains in the stack for compatibility/testing on hosts where its broader host/cgroup inspection is useful, but Prometheus no longer depends on it for the standard container dashboard.
+
+For rootless Docker, set `DOCKER_SOCKET_PATH` to the rootless daemon socket and `DOCKER_SOCKET_GID` to the numeric group visible on that mounted socket. On the current Fedora development host the observed socket group is `971`:
+
+```dotenv
+DOCKER_SOCKET_PATH=/run/user/1000/docker.sock
+DOCKER_DATA_ROOT=/home/drakeg/.local/share/docker
+DOCKER_SOCKET_GID=971
+```
+
+After changing these values, recreate the exporter and Prometheus:
+
+```bash
+docker compose up -d --force-recreate docker-exporter prometheus
+```
+
+Verify `docker-exporter:9713` is UP in Prometheus and query `container_cpu_usage_seconds_total` before troubleshooting Grafana.

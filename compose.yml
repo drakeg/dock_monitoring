@@ -207,9 +207,22 @@ services:
     networks:
       - monitoring
     depends_on:
-      - cadvisor
+      - docker-exporter
       - node-exporter
       - alertmanager
+    security_opt:
+      - no-new-privileges:true
+
+  docker-exporter:
+    image: ghcr.io/dlepaux/docker-exporter:latest
+    container_name: docker-exporter
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
+    group_add:
+      - "${DOCKER_SOCKET_GID:-0}"
+    networks:
+      - monitoring
     security_opt:
       - no-new-privileges:true
 

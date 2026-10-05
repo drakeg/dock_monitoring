@@ -18,10 +18,10 @@ scrape_configs:
       - targets:
           - prometheus:9090
 
-  - job_name: cadvisor
+  - job_name: container-metrics
     static_configs:
       - targets:
-          - cadvisor:8080
+          - docker-exporter:9713
 
   - job_name: node-exporter
     static_configs:
