@@ -222,7 +222,10 @@ services:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
+      # cAdvisor expects the Docker API and data root at these conventional
+      # container paths. Map the host's rootful/rootless locations here.
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - ${DOCKER_DATA_ROOT:-/var/lib/docker}:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
     devices:
       - /dev/kmsg:/dev/kmsg
