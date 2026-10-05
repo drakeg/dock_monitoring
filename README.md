@@ -104,9 +104,21 @@ A rootless Docker installation may instead report a path similar to:
 unix:///run/user/1000/docker.sock
 ```
 
-On a rootless host, change the **host side** of the socket mounts in `compose.yml` to the reported path. The container-side path remains `/var/run/docker.sock`.
+Set `DOCKER_SOCKET_PATH` in the host-specific `.env` file to the socket reported by the active Docker context. The container-side path remains `/var/run/docker.sock`, so no Compose edits are required when moving the stack between rootful and rootless hosts.
 
-Automatic socket-path detection is intentionally not implemented at this time.
+For a conventional/rootful Ubuntu installation:
+
+```dotenv
+DOCKER_SOCKET_PATH=/var/run/docker.sock
+```
+
+For a rootless Fedora installation using UID 1000:
+
+```dotenv
+DOCKER_SOCKET_PATH=/run/user/1000/docker.sock
+```
+
+The default remains `/var/run/docker.sock` when `DOCKER_SOCKET_PATH` is omitted.
 
 ## Configuration
 
