@@ -313,3 +313,13 @@ The infrastructure is ready for application-level configuration. Planned next st
 ## License
 
 No license is currently specified by this repository.
+
+## Alertmanager local configuration
+
+Alertmanager intentionally keeps deployment-specific email addresses out of Git. Before the first `docker compose up -d` on a host, create the local configuration file:
+
+```bash
+cp alertmanager/alertmanager.yml.example alertmanager/alertmanager.yml
+```
+
+Then replace the non-secret email address/username placeholders in `alertmanager/alertmanager.yml` and set `ALERTMANAGER_SMTP_PASSWORD` in `.env`. Compose uses a bind mount with host-path creation disabled, so a missing config now fails clearly instead of Docker creating an `alertmanager.yml` directory.
