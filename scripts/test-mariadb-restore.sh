@@ -28,7 +28,7 @@ if [[ "$BACKUP_PATH" != /* ]]; then
   BACKUP_PATH="$(cd "$(dirname "$BACKUP_PATH")" && pwd)/$(basename "$BACKUP_PATH")"
 fi
 
-DUMP="$BACKUP_PATH/mariadb-all-databases.sql"
+DUMP="$BACKUP_PATH/mariadb-uptime-kuma.sql"
 test -s "$DUMP" || { echo "ERROR: missing or empty $DUMP" >&2; exit 1; }
 
 CONTAINER="dock-monitoring-mariadb-restore-test"

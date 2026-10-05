@@ -25,6 +25,7 @@ tmp/
 *.pid
 
 # Backups
+backups/
 *.bak
 *.backup
 *.old
