@@ -24,9 +24,8 @@ services:
       EXEC: "0"
       SYSTEM: "0"
     volumes:
-      # Rootful/default Docker socket. Rootless hosts may use
-      # /run/user/<uid>/docker.sock instead; see README.md.
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Host socket is configurable for rootful/rootless Docker.
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
     networks:
       - docker-api
     security_opt:
@@ -73,9 +72,8 @@ services:
       PGID: "1000"
       TZ: ${TZ:-America/New_York}
     volumes:
-      # Rootful/default Docker socket. Rootless hosts may use
-      # /run/user/<uid>/docker.sock instead; see README.md.
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Host socket is configurable for rootful/rootless Docker.
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
       - /opt/docker:/opt/docker
       - dockge-data:/app/data
     ports:
