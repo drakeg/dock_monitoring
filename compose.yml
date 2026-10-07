@@ -396,7 +396,7 @@ services:
     labels:
       - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
       - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
-      - "traefik.http.routers.rt.rule=Host(\`${RT_HOSTNAME:-rt.home}\`)"
+      - 'traefik.http.routers.rt.rule=Host(`${RT_HOSTNAME:-rt.home}`)'
       - "traefik.http.routers.rt.entrypoints=web"
       - "traefik.http.services.rt.loadbalancer.server.port=8080"
     healthcheck:
