@@ -25,7 +25,12 @@ services:
       SYSTEM: "0"
     volumes:
       # Host socket is configurable for rootful/rootless Docker.
-      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        read_only: true
+        bind:
+          create_host_path: false
     networks:
       - docker-api
     security_opt:
@@ -73,7 +78,11 @@ services:
       TZ: ${TZ:-America/New_York}
     volumes:
       # Host socket is configurable for rootful/rootless Docker.
-      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
       - /opt/docker:/opt/docker
       - dockge-data:/app/data
     ports:
@@ -218,7 +227,12 @@ services:
     container_name: docker-exporter
     restart: unless-stopped
     volumes:
-      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        read_only: true
+        bind:
+          create_host_path: false
     group_add:
       - "${DOCKER_SOCKET_GID:-0}"
     networks:
@@ -237,7 +251,12 @@ services:
       - /sys:/sys:ro
       # cAdvisor expects the Docker API and data root at these conventional
       # container paths. Map the host's rootful/rootless locations here.
-      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        read_only: true
+        bind:
+          create_host_path: false
       - ${DOCKER_DATA_ROOT:-/var/lib/docker}:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
     devices:
