@@ -97,7 +97,24 @@ Status: **Current**
 - Treat the pre-upgrade backup as the rollback path rather than assuming an in-place major-version downgrade is safe.
 - Review other stateful services for the same latest-supported-LTS policy where their upstream projects provide LTS channels.
 
-## Phase 5 — Application onboarding
+## Phase 5 — Infrastructure ticketing
+
+Status: **Current**
+
+- [x] Select Request Tracker 6 as the infrastructure ticketing/system-of-record platform.
+- [x] Add an RT 6.0.3 containerized foundation with a dedicated private PostgreSQL database.
+- [x] Make RT port, hostname, identity, and database credentials environment-configurable.
+- [x] Block the unauthenticated RT mail-gateway endpoint from the normal web listener.
+- [ ] Validate first-time RT initialization on rootful Ubuntu and rootless Fedora.
+- [ ] Add Prometheus/Uptime Kuma health monitoring for RT.
+- [ ] Add RT database and application-state backup/restore automation and a restore drill.
+- [ ] Add a dedicated Alertmanager-to-RT integration service.
+- [ ] Deduplicate repeated firing alerts into one ticket and update/resolve tickets on recovery.
+- [ ] Map alert severity and useful labels into RT ticket metadata.
+- [ ] Evaluate and configure RT AI capabilities without making an external AI provider mandatory.
+- [ ] Add RT MCP/REST access for authorized operational agents.
+
+## Phase 6 — Application onboarding
 
 Status: **Planned**
 
@@ -113,7 +130,7 @@ For every application stack deployed to the host:
 8. Define application-specific alerts.
 9. Document the monitoring contract in the application's own repository.
 
-## Phase 6 — External monitoring
+## Phase 7 — External monitoring
 
 Status: **Planned**
 
@@ -122,7 +139,7 @@ Status: **Planned**
 - Ensure a host/network/power failure can generate a notification even when the local Kuma instance is unavailable.
 - Add public/external route checks only where services are intentionally externally reachable.
 
-## Phase 7 — Configuration as code
+## Phase 8 — Configuration as code
 
 Status: **Planned**
 
@@ -133,7 +150,7 @@ Status: **Planned**
 - Never commit notification credentials, database passwords, API tokens, or other secrets.
 - [x] Add validation/tests for Compose, Prometheus rules/configuration, and Alertmanager configuration in CI.
 
-## Phase 8 — Operations and hardening
+## Phase 9 — Operations and hardening
 
 Status: **Ongoing**
 

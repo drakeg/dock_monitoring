@@ -1,6 +1,6 @@
 # Docker Monitoring Infrastructure
 
-A Docker Compose monitoring and management stack for Linux Docker hosts.
+A Docker Compose infrastructure, monitoring, management, and ticketing stack for Linux Docker hosts.
 
 The stack combines Traefik, Prometheus, Grafana, cAdvisor, Node Exporter, Uptime Kuma, MariaDB, Dockge, and a restricted Docker socket proxy. It is intended for LAN administration and monitoring without requiring the host to become the network's DNS or DHCP server.
 
@@ -17,6 +17,8 @@ The stack combines Traefik, Prometheus, Grafana, cAdvisor, Node Exporter, Uptime
 | Node Exporter | Host metrics | Internal only |
 | MariaDB | Uptime Kuma database | Internal only |
 | Docker Socket Proxy | Restricted Docker API for Traefik | Internal only |
+| Request Tracker 6 | Infrastructure ticketing and operational system of record | `:8088` |
+| PostgreSQL | Request Tracker database | Internal only |
 
 The exposed management ports bind to the Docker host. Restrict access to trusted LANs with the host firewall as appropriate.
 
@@ -383,3 +385,50 @@ docker compose up -d --force-recreate docker-exporter prometheus
 ```
 
 Verify `docker-exporter:9713` is UP in Prometheus and query `container_cpu_usage_seconds_total` before troubleshooting Grafana.
+
+
+## Request Tracker 6
+
+Request Tracker (RT) provides the ticketing/system-of-record layer for infrastructure operations. The stack pins RT to 6.0.3 and keeps its PostgreSQL database on the private `rt-db` network.
+
+RT is exposed through the `rt-web` Caddy gateway rather than publishing the RT FastCGI service directly. The default LAN endpoint is:
+
+```text
+http://SERVER-IP:8088
+```
+
+Change `RT_PORT` in `.env` if needed. Traefik can also route the configured `RT_HOSTNAME` (default `rt.home`) when local DNS/hosts resolution is available.
+
+### First-time RT initialization
+
+Set `RT_DB_PASSWORD` and the other optional RT values in `.env`, then run:
+
+```bash
+bash scripts/init-rt.sh
+```
+
+The helper starts PostgreSQL, waits for database readiness, runs RT's database initialization against the already-created database, and starts RT plus its web gateway.
+
+RT database initialization is a first-install operation. Do not rerun initialization against an existing populated RT database. Future RT version changes must use RT's documented database upgrade procedure and a verified backup.
+
+The regular web gateway explicitly blocks `/REST/1.0/NoAuth/mail-gateway`. Inbound email will be implemented separately so an unauthenticated mail-ingress endpoint is not accidentally exposed on the normal LAN/web listener.
+
+### RT persistence
+
+The RT foundation adds these named volumes:
+
+- `rt-db-data` — PostgreSQL database state.
+- `rt-data` — RT variable/application state under `/opt/rt/var`.
+- `rt-caddy-data` and `rt-caddy-config` — Caddy runtime state.
+
+Do not use `docker compose down -v` on a populated RT deployment. Backup/restore automation for RT is tracked as part of the ticketing roadmap.
+
+### Planned RT integration
+
+The next ticketing increments will add:
+
+- Prometheus/Uptime Kuma health monitoring for RT.
+- A dedicated Alertmanager-to-RT bridge with alert deduplication and recovery handling.
+- Backup/restore automation for PostgreSQL and RT state.
+- RT AI extension evaluation/configuration without requiring an AI provider for base operation.
+- RT MCP/REST integration for operational agents.

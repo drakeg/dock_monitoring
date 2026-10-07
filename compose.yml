@@ -330,6 +330,89 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  rt-db:
+    image: postgres:18
+    container_name: rt-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${RT_DB_NAME:-rt}
+      POSTGRES_USER: ${RT_DB_USER:-rt}
+      POSTGRES_PASSWORD: ${RT_DB_PASSWORD:?Set RT_DB_PASSWORD in .env}
+    volumes:
+      - rt-db-data:/var/lib/postgresql
+    networks:
+      - rt-db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  rt:
+    image: firefart/requesttracker:6.0.3
+    container_name: rt
+    restart: unless-stopped
+    depends_on:
+      rt-db:
+        condition: service_healthy
+    environment:
+      RT_NAME: ${RT_NAME:-infrastructure}
+      RT_ORGANIZATION: ${RT_ORGANIZATION:-example.invalid}
+      RT_DB_NAME: ${RT_DB_NAME:-rt}
+      RT_DB_USER: ${RT_DB_USER:-rt}
+      RT_DB_PASSWORD: ${RT_DB_PASSWORD:?Set RT_DB_PASSWORD in .env}
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ./rt/RT_SiteConfig.pm:/opt/rt/etc/RT_SiteConfig.pm:ro,Z
+      - rt-data:/opt/rt/var
+    networks:
+      - rt-db
+      - rt-web
+    security_opt:
+      - no-new-privileges:true
+
+  rt-web:
+    image: caddy:2.10
+    container_name: rt-web
+    restart: unless-stopped
+    depends_on:
+      rt:
+        condition: service_healthy
+    volumes:
+      - ./rt/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      - rt-caddy-data:/data
+      - rt-caddy-config:/config
+    ports:
+      - "${RT_PORT:-8088}:8080"
+    networks:
+      - rt-web
+      - proxy
+      - monitoring
+    labels:
+      - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - 'traefik.http.routers.rt.rule=Host(`${RT_HOSTNAME:-rt.home}`)'
+      - "traefik.http.routers.rt.entrypoints=web"
+      - "traefik.http.services.rt.loadbalancer.server.port=8080"
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://127.0.0.1:8080/healthz
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+
 networks:
   proxy:
     name: ${PROXY_NETWORK:-proxy}
@@ -344,6 +427,11 @@ networks:
   uptime-db:
     name: uptime-db
     internal: true
+  rt-db:
+    name: rt-db
+    internal: true
+  rt-web:
+    name: rt-web
 
 volumes:
   prometheus-data:
@@ -360,6 +448,14 @@ volumes:
     name: dockge-data
   alertmanager-data:
     name: alertmanager-data
+  rt-db-data:
+    name: rt-db-data
+  rt-data:
+    name: rt-data
+  rt-caddy-data:
+    name: rt-caddy-data
+  rt-caddy-config:
+    name: rt-caddy-config
 
 secrets:
   alertmanager_smtp_password:

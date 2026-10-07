@@ -1,0 +1,21 @@
+{
+    admin off
+    auto_https off
+}
+
+:8080 {
+    @health path /healthz
+    respond @health "OK" 200
+
+    # RT's unauthenticated mail gateway is intentionally not exposed through
+    # the normal web endpoint. A dedicated mail-ingress design can be added later.
+    @mailgate path /REST/1.0/NoAuth/mail-gateway
+    respond @mailgate "Forbidden" 403
+
+    reverse_proxy rt:9000 {
+        transport fastcgi {
+            env SERVER_NAME {http.request.host}
+            env REQUEST_URI {uri}
+        }
+    }
+}
