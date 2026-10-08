@@ -13,9 +13,6 @@
     respond @mailgate "Forbidden" 403
 
     reverse_proxy rt:9000 {
-        transport fastcgi {
-            env SERVER_NAME {http.request.host}
-            env REQUEST_URI {uri}
-        }
+        transport fastcgi
     }
 }
