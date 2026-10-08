@@ -436,3 +436,14 @@ The next ticketing increments will add:
 ### RT canonical URL
 
 Set `RT_WEB_URL` in `.env` to the **exact** browser URL, including scheme, host and port (for example `http://192.168.1.10:8088/`). This prevents RT inline-edit and other domain-sensitive features from failing with a `localhost` warning. After changing it, run `docker compose up -d --force-recreate rt`. When accessing RT through Traefik instead, use the actual routed URL (including HTTPS if enabled).
+
+## Jenkins CI controller (optional)
+
+Jenkins is an opt-in service, so existing deployments do not start it automatically. Set `JENKINS_PORT` (default `8089`) and optionally `JENKINS_HOSTNAME` in `.env`, then run:
+
+```bash
+docker compose --profile jenkins up -d jenkins
+docker compose --profile jenkins exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Open `http://SERVER-IP:8089/` and complete the Jenkins setup wizard. Configure the Jenkins URL to the same browser address under **Manage Jenkins → System**. Persistent controller state is in `jenkins-data`; back it up before upgrades. The controller does **not** mount the host Docker socket or run privileged; use a separate, least-privilege build agent for container builds. For GitHub integration, install/configure the GitHub Branch Source plugin and use multibranch pipelines with repository Jenkinsfiles. Webhook delivery requires a reachable HTTPS endpoint and an authenticated integration; direct LAN-only Jenkins cannot receive GitHub.com webhooks without a secure relay or VPN. Prefer HTTPS before entering credentials over a shared network.
