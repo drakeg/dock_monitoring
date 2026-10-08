@@ -12,12 +12,12 @@ Set($DatabasePassword, $ENV{'RT_DB_PASSWORD'});
 Set($DatabaseName, $ENV{'RT_DB_NAME'} || 'rt');
 Set($DatabaseAdmin, $ENV{'RT_DB_USER'} || 'rt');
 
-# Leave URL canonicalization disabled so direct LAN access and a configured
-# reverse-proxy hostname can both be used during initial deployment.
+# Keep redirect canonicalization disabled behind the Caddy FastCGI gateway.
+# WebURL still defines the canonical URL for RT links and inline-edit features.
 my $rt_web_url = $ENV{'RT_WEB_URL'} || 'http://localhost:8088/';
 $rt_web_url .= '/' unless $rt_web_url =~ m{/$};
 Set($WebURL, $rt_web_url);
-Set($CanonicalizeRedirectURLs, 1);
+Set($CanonicalizeRedirectURLs, 0);
 Set($CanonicalizeURLsInFeeds, 0);
 
 1;
