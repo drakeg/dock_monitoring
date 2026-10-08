@@ -17,6 +17,12 @@ Set($DatabaseAdmin, $ENV{'RT_DB_USER'} || 'rt');
 my $rt_web_url = $ENV{'RT_WEB_URL'} || 'http://localhost:8088/';
 $rt_web_url .= '/' unless $rt_web_url =~ m{/$};
 Set($WebURL, $rt_web_url);
+# RT does not derive these settings from WebURL.
+require URI;
+my $rt_uri = URI->new($rt_web_url);
+Set($WebDomain, $rt_uri->host);
+Set($WebPort, $rt_uri->port);
+Set($WebPath, $rt_uri->path eq '/' ? '' : $rt_uri->path);
 Set($CanonicalizeRedirectURLs, 0);
 Set($CanonicalizeURLsInFeeds, 0);
 
