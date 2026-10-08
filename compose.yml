@@ -361,6 +361,7 @@ services:
       rt-db:
         condition: service_healthy
     environment:
+      RT_WEB_URL: ${RT_WEB_URL:-http://localhost:8088/}
       RT_NAME: ${RT_NAME:-infrastructure}
       RT_ORGANIZATION: ${RT_ORGANIZATION:-example.invalid}
       RT_DB_NAME: ${RT_DB_NAME:-rt}

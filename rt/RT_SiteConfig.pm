@@ -14,7 +14,10 @@ Set($DatabaseAdmin, $ENV{'RT_DB_USER'} || 'rt');
 
 # Leave URL canonicalization disabled so direct LAN access and a configured
 # reverse-proxy hostname can both be used during initial deployment.
-Set($CanonicalizeRedirectURLs, 0);
+my $rt_web_url = $ENV{'RT_WEB_URL'} || 'http://localhost:8088/';
+$rt_web_url .= '/' unless $rt_web_url =~ m{/$};
+Set($WebURL, $rt_web_url);
+Set($CanonicalizeRedirectURLs, 1);
 Set($CanonicalizeURLsInFeeds, 0);
 
 1;
