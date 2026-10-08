@@ -432,3 +432,7 @@ The next ticketing increments will add:
 - Backup/restore automation for PostgreSQL and RT state.
 - RT AI extension evaluation/configuration without requiring an AI provider for base operation.
 - RT MCP/REST integration for operational agents.
+
+### RT canonical URL
+
+Set `RT_WEB_URL` in `.env` to the **exact** browser URL, including scheme, host and port (for example `http://192.168.1.10:8088/`). This prevents RT inline-edit and other domain-sensitive features from failing with a `localhost` warning. After changing it, run `docker compose up -d --force-recreate rt`. When accessing RT through Traefik instead, use the actual routed URL (including HTTPS if enabled).
