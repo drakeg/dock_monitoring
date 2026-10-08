@@ -34,7 +34,8 @@ jobs:
             alertmanager/alertmanager.yml
 
       - name: Validate Docker Compose
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
           docker compose --profile jenkins config --quiet
 
       - name: Validate RT configuration files
