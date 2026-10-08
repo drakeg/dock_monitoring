@@ -414,6 +414,36 @@ services:
       - no-new-privileges:true
 
 
+  jenkins:
+    image: jenkins/jenkins:lts-jdk21
+    profiles: ["jenkins"]
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=true"
+      JENKINS_OPTS: "--prefix=/"
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - jenkins-data:/var/jenkins_home
+    ports:
+      - "${JENKINS_PORT:-8089}:8080"
+    networks:
+      - proxy
+      - monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/login >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    labels:
+      - "traefik.enable=${ENABLE_PROXY_LABELS:-true}"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
+      - 'traefik.http.routers.jenkins.rule=Host(`${JENKINS_HOSTNAME:-jenkins.home}`)'
+      - "traefik.http.routers.jenkins.entrypoints=web"
+      - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
+    security_opt:
+      - no-new-privileges:true
+
 networks:
   proxy:
     name: ${PROXY_NETWORK:-proxy}
@@ -435,6 +465,8 @@ networks:
     name: rt-web
 
 volumes:
+  jenkins-data:
+    name: jenkins-data
   prometheus-data:
     name: prometheus-data
   grafana-data:
