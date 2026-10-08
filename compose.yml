@@ -378,7 +378,7 @@ services:
       - no-new-privileges:true
 
   rt-web:
-    image: caddy:2.10
+    image: caddy:2.11
     container_name: rt-web
     restart: unless-stopped
     depends_on:
