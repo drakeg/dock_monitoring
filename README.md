@@ -447,3 +447,13 @@ docker compose --profile jenkins exec jenkins cat /var/jenkins_home/secrets/init
 ```
 
 Open `http://SERVER-IP:8089/` and complete the Jenkins setup wizard. Configure the Jenkins URL to the same browser address under **Manage Jenkins → System**. Persistent controller state is in `jenkins-data`; back it up before upgrades. The controller does **not** mount the host Docker socket or run privileged; use a separate, least-privilege build agent for container builds. For GitHub integration, install/configure the GitHub Branch Source plugin and use multibranch pipelines with repository Jenkinsfiles. Webhook delivery requires a reachable HTTPS endpoint and an authenticated integration; direct LAN-only Jenkins cannot receive GitHub.com webhooks without a secure relay or VPN. Prefer HTTPS before entering credentials over a shared network.
+
+## Repeatable local development setup
+
+For disposable, trusted **local testing only**, copy the documented defaults from `.env.example` and run:
+
+```bash
+bash scripts/dev-up.sh
+```
+
+The helper creates `.env` if absent, discovers the Docker socket group, starts databases, initializes an empty RT schema, and configures the MariaDB metrics exporter account. It does not delete volumes. Existing populated RT databases with mismatched credentials stop with an error instead of being reset. The placeholder passwords in `.env.example` are development-only: replace them before any shared or production deployment. The script requires Bash, Docker Compose, and GNU `sed`/`stat` (Linux). Jenkins remains opt-in.
