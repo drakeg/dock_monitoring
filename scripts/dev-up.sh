@@ -37,10 +37,9 @@ if ! docker compose exec -T -e PGPASSWORD="$RT_DB_PASSWORD" rt-db \
     exit 1
   fi
   echo "Synchronizing password for empty RT development database..."
-  # psql variable interpolation quotes the password safely as a SQL literal.
-  docker compose exec -T rt-db psql -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" \
-    -v new_password="$RT_DB_PASSWORD" -c "SELECT 1" >/dev/null
-  docker compose exec -T rt-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER ROLE \"$POSTGRES_USER\" PASSWORD '\''$(printf "%s" "$POSTGRES_PASSWORD" | sed "s/'\''/'\'''\''/g")'\'';"' >/dev/null
+  printf "SELECT format('ALTER ROLE %%I PASSWORD %%L', current_user, :'new_password') \\gexec\n" | \
+    docker compose exec -T rt-db psql -v ON_ERROR_STOP=1 -v new_password="$RT_DB_PASSWORD" \
+      -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" >/dev/null
 fi
 
 table_count="$(docker compose exec -T rt-db psql -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")"
