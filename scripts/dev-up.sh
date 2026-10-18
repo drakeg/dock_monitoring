@@ -79,8 +79,11 @@ docker compose exec -T \
   -e EXPORTER_PASSWORD="$MYSQLD_EXPORTER_PASSWORD" uptime-db sh -c '
     escaped_user=$(printf "%s" "$EXPORTER_USER" | sed "s/'\''/'\'''\''/g")
     escaped_pass=$(printf "%s" "$EXPORTER_PASSWORD" | sed "s/'\''/'\'''\''/g")
-    printf "CREATE USER IF NOT EXISTS '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nALTER USER '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nGRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO '\''%s'\''@'\''%%'\'';\n" "$escaped_user" "$escaped_pass" "$escaped_user" "$escaped_pass" "$escaped_user" | mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"
+    printf "CREATE USER IF NOT EXISTS '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nALTER USER '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nGRANT PROCESS, REPLICATION CLIENT, SLAVE MONITOR, SELECT ON *.* TO '\''%s'\''@'\''%%'\'';\n" "$escaped_user" "$escaped_pass" "$escaped_user" "$escaped_pass" "$escaped_user" | mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"
   '
 
+# Recreate RT after first-time schema initialization: an existing unhealthy process
+# may have started before its database was ready and never retried initialization.
+docker compose up -d --force-recreate rt mysqld-exporter
 docker compose up -d
 echo "Development bootstrap complete. Optional Jenkins: docker compose --profile jenkins up -d jenkins"
