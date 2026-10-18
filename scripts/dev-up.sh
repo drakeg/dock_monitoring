@@ -79,7 +79,7 @@ docker compose exec -T \
   -e EXPORTER_PASSWORD="$MYSQLD_EXPORTER_PASSWORD" uptime-db sh -c '
     escaped_user=$(printf "%s" "$EXPORTER_USER" | sed "s/'\''/'\'''\''/g")
     escaped_pass=$(printf "%s" "$EXPORTER_PASSWORD" | sed "s/'\''/'\'''\''/g")
-    printf "CREATE USER IF NOT EXISTS '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nALTER USER '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nGRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO '\''%s'\''@'\''%%'\'';\n" "$escaped_user" "$escaped_pass" "$escaped_user" "$escaped_pass" "$escaped_user" | mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"
+    printf "CREATE USER IF NOT EXISTS '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nALTER USER '\''%s'\''@'\''%%'\'' IDENTIFIED BY '\''%s'\'';\nGRANT PROCESS, REPLICATION CLIENT, SLAVE MONITOR, SELECT ON *.* TO '\''%s'\''@'\''%%'\'';\n" "$escaped_user" "$escaped_pass" "$escaped_user" "$escaped_pass" "$escaped_user" | mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"
   '
 
 docker compose up -d
