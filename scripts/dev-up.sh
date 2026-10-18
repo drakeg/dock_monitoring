@@ -28,18 +28,33 @@ for attempt in $(seq 1 60); do
   sleep 2
 done
 
-# Check credentials over TCP: local socket connections may use trust auth.
-if ! docker compose exec -T -e PGPASSWORD="$RT_DB_PASSWORD" rt-db \
-  psql -h 127.0.0.1 -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" -Atqc 'SELECT 1' >/dev/null 2>&1; then
+# Verify the same network authentication path RT actually uses.
+# PostgreSQL's 127.0.0.1 pg_hba entry can be trust, so localhost is NOT a valid password check.
+rt_db_connect() {
+  docker compose run --rm --no-deps --entrypoint perl rt -MDBI -e '
+    my $dbh = DBI->connect(
+      "dbi:Pg:dbname=$ENV{RT_DB_NAME};host=rt-db;port=5432",
+      $ENV{RT_DB_USER}, $ENV{RT_DB_PASSWORD},
+      {RaiseError => 1, PrintError => 0}
+    );
+    $dbh->disconnect;
+  ' >/dev/null 2>&1
+}
+
+if ! rt_db_connect; then
   table_count="$(docker compose exec -T rt-db psql -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")"
   if [[ "$table_count" != 0 ]]; then
-    echo "ERROR: RT database contains tables but configured password differs. Preserving database; manual recovery required." >&2
+    echo "ERROR: RT database is populated but RT cannot authenticate. Preserving data; manual recovery required." >&2
     exit 1
   fi
   echo "Synchronizing password for empty RT development database..."
-  printf "SELECT format('ALTER ROLE %%I PASSWORD %%L', current_user, :'new_password') \\gexec\n" | \
+  printf "SELECT format('ALTER ROLE %%I PASSWORD %%L', current_user, :'new_password') \\gexec\n" |
     docker compose exec -T rt-db psql -v ON_ERROR_STOP=1 -v new_password="$RT_DB_PASSWORD" \
       -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" >/dev/null
+  if ! rt_db_connect; then
+    echo "ERROR: RT cannot authenticate after synchronizing development credentials." >&2
+    exit 1
+  fi
 fi
 
 table_count="$(docker compose exec -T rt-db psql -U "${RT_DB_USER:-rt}" -d "${RT_DB_NAME:-rt}" -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")"
