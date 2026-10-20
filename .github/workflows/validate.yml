@@ -19,6 +19,8 @@ jobs:
       GRAFANA_ADMIN_PASSWORD: ci-only-grafana-password
       ALERTMANAGER_SMTP_PASSWORD: ci-only-smtp-password
       RT_DB_PASSWORD: ci-only-rt-database-password
+      BOOKSTACK_DB_PASSWORD: ci-only-bookstack-password
+      BOOKSTACK_APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 
     steps:
       - name: Check out repository
@@ -37,7 +39,7 @@ jobs:
         run: |
           docker compose config --quiet
           docker compose --profile jenkins config --quiet
-          BOOKSTACK_DB_PASSWORD=ci-test-only BOOKSTACK_DB_ROOT_PASSWORD=ci-test-only BOOKSTACK_APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= docker compose -f compose.bookstack.yml config --quiet
+          docker compose config --quiet
 
       - name: Validate RT configuration files
         run: |
