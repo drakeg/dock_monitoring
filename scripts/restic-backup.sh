@@ -7,9 +7,9 @@ umask 077
 set -a
 source .env
 set +a
-BACKUP_MOUNT="${BACKUP_MOUNT:-/mnt/backups}"
-[[ -d "$BACKUP_MOUNT" ]] || { echo "Backup mount missing: $BACKUP_MOUNT" >&2; exit 1; }
-mountpoint -q "$BACKUP_MOUNT" || { echo "Refusing to write: $BACKUP_MOUNT is not mounted" >&2; exit 1; }
+BACKUP_MOUNT="${BACKUP_MOUNT:-./backups-local}"\nBACKUP_REQUIRE_MOUNT="${BACKUP_REQUIRE_MOUNT:-false}"
+if [[ "$BACKUP_REQUIRE_MOUNT" == true ]]; then\n  [[ -d "$BACKUP_MOUNT" ]] || { echo "Backup mount missing: $BACKUP_MOUNT" >&2; exit 1; }\nelse\n  mkdir -p "$BACKUP_MOUNT"\nfi\nBACKUP_MOUNT="$(cd "$BACKUP_MOUNT" && pwd)"
+if [[ "$BACKUP_REQUIRE_MOUNT" == true ]]; then\n  mountpoint -q "$BACKUP_MOUNT" || { echo "Refusing to write: $BACKUP_MOUNT is not mounted" >&2; exit 1; }\nfi
 BACKUP_DIR="$BACKUP_MOUNT/dock-monitoring"
 mkdir -p "$BACKUP_DIR"
 PASSFILE="${RESTIC_PASSWORD_FILE:-/etc/dock-monitoring/restic-password}"
