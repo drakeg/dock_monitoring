@@ -78,3 +78,69 @@ jobs:
       - name: Validate repository Grafana dashboards
         run: |
           python -m json.tool grafana/dashboards/monitoring-overview.json >/dev/null
+
+  fresh-development-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Prepare local development configuration
+        run: |
+          cp .env.example .env
+          cp alertmanager/alertmanager.yml.example alertmanager/alertmanager.yml
+          sed -i \
+            -e 's/ALERTMANAGER_EMAIL_TO_PLACEHOLDER/alerts@example.invalid/' \
+            -e 's/ALERTMANAGER_EMAIL_FROM_PLACEHOLDER/alerts@example.invalid/' \
+            -e 's/ALERTMANAGER_SMTP_USERNAME_PLACEHOLDER/alerts@example.invalid/' \
+            alertmanager/alertmanager.yml
+
+      - name: Start clean development deployment
+        run: bash scripts/dev-up.sh
+
+      - name: Verify RT and exporters
+        run: |
+          docker compose ps
+          # Compose startup does not imply application health: allow warm-up.
+          for service in rt rt-web rt-db docker-exporter uptime-db uptime-kuma; do
+            ready=false
+            for attempt in $(seq 1 60); do
+              if [ "$(docker inspect -f '{{.State.Health.Status}}' "$service")" = healthy ]; then
+                ready=true
+                break
+              fi
+              sleep 3
+            done
+            if [ "$ready" != true ]; then
+              echo "::error::$service did not become healthy"
+              exit 1
+            fi
+          done
+          docker exec rt-db psql -U rt -d rt -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" | awk '$1 > 0 {ok=1} END {exit !ok}'
+          # Derive the actual network rather than assuming a Compose project name.
+          network="$(docker inspect mysqld-exporter --format '{{range $name, $network := .NetworkSettings.Networks}}{{println $name}}{{end}}' | head -n 1)"
+          for attempt in $(seq 1 30); do
+            if docker run --rm --network "$network" curlimages/curl:8.16.0 -fsS http://mysqld-exporter:9104/metrics -o /dev/stdout | grep -q '^mysql_up 1'; then
+              break
+            fi
+            if [ "$attempt" = 30 ]; then
+              echo "::error::MySQL exporter did not report mysql_up=1"
+              exit 1
+            fi
+            sleep 3
+          done
+
+      - name: Verify repeat deployment preserves RT data
+        run: |
+          before="$(docker exec rt-db psql -U rt -d rt -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")"
+          bash scripts/dev-up.sh
+          after="$(docker exec rt-db psql -U rt -d rt -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")"
+          test "$before" = "$after"
+          test "$(docker inspect -f '{{.State.Health.Status}}' rt)" = healthy
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          docker compose ps || true
+          docker compose logs --tail=80 rt rt-db rt-web uptime-db mysqld-exporter docker-exporter || true
