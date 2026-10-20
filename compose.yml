@@ -124,6 +124,33 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:latest
+    restart: unless-stopped
+    depends_on:
+      uptime-db:
+        condition: service_healthy
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      TZ: ${TZ:-America/New_York}
+      APP_URL: ${BOOKSTACK_APP_URL:-http://localhost:6875}
+      APP_KEY: ${BOOKSTACK_APP_KEY:?Set BOOKSTACK_APP_KEY in .env}
+      DB_HOST: uptime-db
+      DB_PORT: "3306"
+      DB_DATABASE: bookstack
+      DB_USERNAME: bookstack
+      DB_PASSWORD: ${BOOKSTACK_DB_PASSWORD:?Set BOOKSTACK_DB_PASSWORD in .env}
+    volumes:
+      - bookstack-data:/config
+    ports:
+      - "${BOOKSTACK_PORT:-6875}:80"
+    networks:
+      - uptime-db
+      - proxy
+    security_opt:
+      - no-new-privileges:true
+
   mysqld-exporter:
     image: prom/mysqld-exporter:latest
     container_name: mysqld-exporter
@@ -477,6 +504,8 @@ volumes:
     name: uptime-kuma-data
   uptime-db-data:
     name: uptime-db-data
+  bookstack-data:
+    name: bookstack-data
   dockge-data:
     name: dockge-data
   alertmanager-data:
