@@ -49,6 +49,7 @@ jobs:
           bash -n scripts/dev-up.sh
           bash -n scripts/backup.sh
           bash -n scripts/restic-backup.sh
+          bash -n scripts/migrate-bookstack-db.sh
           docker run --rm \
             -v "$PWD/rt/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2.10 \
