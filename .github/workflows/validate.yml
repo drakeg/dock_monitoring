@@ -37,6 +37,7 @@ jobs:
         run: |
           docker compose config --quiet
           docker compose --profile jenkins config --quiet
+          BOOKSTACK_DB_PASSWORD=ci-test-only BOOKSTACK_DB_ROOT_PASSWORD=ci-test-only BOOKSTACK_APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= docker compose -f compose.bookstack.yml config --quiet
 
       - name: Validate RT configuration files
         run: |
@@ -44,6 +45,8 @@ jobs:
           test -s rt/Caddyfile
           bash -n scripts/init-rt.sh
           bash -n scripts/dev-up.sh
+          bash -n scripts/backup.sh
+          bash -n scripts/restic-backup.sh
           docker run --rm \
             -v "$PWD/rt/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2.10 \
