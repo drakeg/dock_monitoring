@@ -27,9 +27,7 @@ trap 'rm -rf "$staging"' EXIT
 mkdir -p "$staging/db" "$staging/config"
 docker exec uptime-db sh -c 'exec mariadb-dump -uroot -p"$MARIADB_ROOT_PASSWORD" --single-transaction --quick --routines --events --all-databases' > "$staging/db/uptime.sql"
 docker exec rt-db sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$staging/db/rt.dump"
-if docker ps --format '{{.Names}}' | grep -qx bookstack-db; then
-  docker exec bookstack-db sh -c 'exec mariadb-dump -uroot -p"$MARIADB_ROOT_PASSWORD" --single-transaction --quick --routines --events --all-databases' > "$staging/db/bookstack.sql"
-fi
+# BookStack now uses uptime-db, included in the all-databases dump above.
 cp compose.yml "$staging/config/"
 [[ ! -f compose.bookstack.yml ]] || cp compose.bookstack.yml "$staging/config/"
 cp .env "$staging/config/"
