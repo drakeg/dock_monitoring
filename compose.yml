@@ -381,7 +381,7 @@ services:
       - no-new-privileges:true
 
   rt:
-    image: firefart/requesttracker:6.0.3
+    image: firefart/requesttracker:6.0.4
     container_name: rt
     restart: unless-stopped
     depends_on:
