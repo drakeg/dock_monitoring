@@ -1,0 +1,11 @@
+# PR-Agent pilot for drakeg/dock_monitoring
+
+[pr_reviewer]
+extra_instructions = """
+Prioritize actionable bugs, security vulnerabilities, leaked credentials,
+unsafe Docker socket exposure, privileged containers, persistence and backup
+regressions, unsafe shell quoting, and GitHub Actions supply-chain risks.
+Check that macOS Docker Desktop overrides do not break Linux deployments.
+Distinguish blocking defects from optional improvements. Do not recommend
+destructive database or Docker volume operations without safeguards.
+"""
