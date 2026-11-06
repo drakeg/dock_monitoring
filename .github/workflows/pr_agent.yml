@@ -1,0 +1,47 @@
+name: PR-Agent Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-agent-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: AI pull request review
+    # Pilot: only review non-draft PRs from branches in this repository.
+    # Forked PRs do not receive secrets on pull_request events.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.draft == false &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.sender.type != 'Bot')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+    steps:
+      - name: Check API key configuration
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+        run: |
+          if [ -z "$OPENAI_KEY" ]; then
+            echo "::notice::PR-Agent pilot is inactive until OPENAI_KEY is configured in repository Actions secrets."
+          fi
+
+      - name: Run PR-Agent review
+        if: ${{ env.OPENAI_KEY != '' }}
+        uses: The-PR-Agent/pr-agent@efdde4afe14aa401a3889012c7f3e9ef3081a430 # v0.49.0
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github_action_config.auto_review: "true"
+          github_action_config.auto_describe: "false"
+          github_action_config.auto_improve: "false"
