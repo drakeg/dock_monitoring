@@ -3,7 +3,6 @@ name: PR-Agent Review
 on:
   pull_request:
     types: [opened, reopened, ready_for_review, synchronize]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,10 +18,9 @@ jobs:
     # Pilot: only review non-draft PRs from branches in this repository.
     # Forked PRs do not receive secrets on pull_request events.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.draft == false &&
-       github.event.pull_request.head.repo.full_name == github.repository &&
-       github.event.sender.type != 'Bot')
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.sender.type != 'Bot'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
