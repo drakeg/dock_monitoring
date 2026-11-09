@@ -16,6 +16,7 @@ else
 fi
 BACKUP_MOUNT="$(cd "$BACKUP_MOUNT" && pwd)"
 if [[ "$BACKUP_REQUIRE_MOUNT" == true ]]; then
+  command -v mountpoint >/dev/null 2>&1 || { echo "mountpoint utility required for mount verification" >&2; exit 1; }
   mountpoint -q "$BACKUP_MOUNT" || { echo "Refusing to write: $BACKUP_MOUNT is not mounted" >&2; exit 1; }
 fi
 BACKUP_DIR="$BACKUP_MOUNT/dock-monitoring"
@@ -27,6 +28,7 @@ trap 'rm -rf "$staging"' EXIT
 mkdir -p "$staging/db" "$staging/config"
 docker exec uptime-db sh -c 'exec mariadb-dump -uroot -p"$MARIADB_ROOT_PASSWORD" --single-transaction --quick --routines --events --all-databases' > "$staging/db/uptime.sql"
 docker exec rt-db sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$staging/db/rt.dump"
+[[ -s "$staging/db/uptime.sql" && -s "$staging/db/rt.dump" ]] || { echo "Database dump missing or empty; refusing backup" >&2; exit 1; }
 # BookStack now uses uptime-db, included in the all-databases dump above.
 cp compose.yml "$staging/config/"
 [[ ! -f compose.bookstack.yml ]] || cp compose.bookstack.yml "$staging/config/"
@@ -41,6 +43,12 @@ restic() {
 }
 if [[ ! -f "$BACKUP_DIR/config" ]]; then restic init; fi
 restic backup /data --tag dock-monitoring
-restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+# Check repository integrity before considering retention/prune operations.
 restic check
+if [[ "${BACKUP_ENABLE_PRUNE:-false}" == true ]]; then
+  restic forget --tag dock-monitoring --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+  restic check
+else
+  echo "Retention/prune disabled (BACKUP_ENABLE_PRUNE=false)."
+fi
 echo "Backup completed successfully. Repository: $BACKUP_DIR"
