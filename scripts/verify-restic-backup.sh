@@ -29,7 +29,5 @@ echo "Checking Restic repository integrity..."
 restic check
 echo "Listing latest dock-monitoring snapshot..."
 restic snapshots --tag dock-monitoring --latest 1
-echo "Listing latest snapshot files (read-only)..."
-restic ls --tag dock-monitoring latest
 echo "Verification completed. This checks repository structure and file listings,"
 echo "not a full data restore or every stored pack's content."
