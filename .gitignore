@@ -32,3 +32,7 @@ backups/
 
 # Local Alertmanager configuration contains deployment-specific email addresses
 alertmanager/alertmanager.yml
+
+# Backup runner state and local Restic repository
+backup-status/
+backups-local/
