@@ -63,3 +63,40 @@ test, use Restic's `check --read-data` on a maintenance schedule.
 The sample restore command assumes `restic-repository` is a local copy of the
 `dock-monitoring` Restic repository and the restore target is empty.
 Never use `docker compose down -v` to perform a restore.
+
+## Opt-in scheduling and monitoring
+
+**Do not enable unattended backups until a manual backup and isolated restore
+drill have succeeded.** This repository does not install a scheduler or
+modify the running Docker stack automatically.
+
+For a Linux host with `flock`, an example daily cron entry is:
+
+```cron
+15 2 * * * cd /absolute/path/to/dock_monitoring && /usr/bin/bash scripts/run-scheduled-backup.sh >> /var/log/dock-monitoring-backup.log 2>&1
+```
+
+Use an absolute repository path and ensure the cron account can access Docker,
+the Restic password file and the backup mount. Protect log permissions; Docker
+and Restic error output may contain deployment details. On macOS, schedule the
+same wrapper through launchd rather than relying on a Linux-only systemd timer;
+the wrapper warns if `flock` is missing, so prevent overlapping jobs using
+your scheduler. Do not use the Linux mountpoint enforcement option on macOS
+without installing a compatible utility.
+
+The wrapper records UTC timestamps in `BACKUP_STATUS_DIR` (default
+`./backup-status`) and writes a failure marker if the backup exits nonzero.
+It never changes `BACKUP_ENABLE_PRUNE`, which remains disabled by default.
+
+Run `bash scripts/check-backup-health.sh` to get a monitoring-friendly exit
+code and text. The default freshness threshold is 30 hours; configure
+`BACKUP_MAX_AGE_HOURS` in `.env` if needed. Integrate this command into your
+existing monitoring agent or scheduled alert mechanism and alert on any
+nonzero result. A failed run is reported even if an older successful backup
+is still fresh. **No SMTP integration or monitoring service is automatically
+configured by this PR.**
+
+Test both success and failure paths in a disposable environment before
+installing a cron/launchd schedule. Backup freshness does not prove
+restorability; continue periodic isolated restore drills and use
+`restic check --read-data` for stronger data verification.
