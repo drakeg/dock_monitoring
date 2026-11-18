@@ -27,15 +27,15 @@ publish_metrics() {
   [[ -s "$STATUS_DIR/last-success-epoch.txt" ]] && read -r last_success < "$STATUS_DIR/last-success-epoch.txt"
   tmp="$(mktemp "$METRICS_DIR/.backup-status.XXXXXX")" || return 1
   {
-    printf "# HELP dock_backup_last_attempt_timestamp_seconds Unix time of latest backup attempt.\\n"
-    printf "# TYPE dock_backup_last_attempt_timestamp_seconds gauge\\n"
-    printf "dock_backup_last_attempt_timestamp_seconds %s\\n" "$attempt_epoch"
-    printf "# HELP dock_backup_last_success_timestamp_seconds Unix time of latest successful backup.\\n"
-    printf "# TYPE dock_backup_last_success_timestamp_seconds gauge\\n"
-    printf "dock_backup_last_success_timestamp_seconds %s\\n" "$last_success"
-    printf "# HELP dock_backup_last_run_success Whether latest backup succeeded (1 yes, 0 no).\\n"
-    printf "# TYPE dock_backup_last_run_success gauge\\n"
-    printf "dock_backup_last_run_success %s\\n" "$result"
+    printf "# HELP dock_backup_last_attempt_timestamp_seconds Unix time of latest backup attempt.\n"
+    printf "# TYPE dock_backup_last_attempt_timestamp_seconds gauge\n"
+    printf "dock_backup_last_attempt_timestamp_seconds %s\n" "$attempt_epoch"
+    printf "# HELP dock_backup_last_success_timestamp_seconds Unix time of latest successful backup.\n"
+    printf "# TYPE dock_backup_last_success_timestamp_seconds gauge\n"
+    printf "dock_backup_last_success_timestamp_seconds %s\n" "$last_success"
+    printf "# HELP dock_backup_last_run_success Whether latest backup succeeded (1 yes, 0 no).\n"
+    printf "# TYPE dock_backup_last_run_success gauge\n"
+    printf "dock_backup_last_run_success %s\n" "$result"
   } > "$tmp"
   mv -f "$tmp" "$METRICS_DIR/backup-status.prom"
 }
@@ -50,6 +50,7 @@ if bash scripts/restic-backup.sh; then
 else
   rc=$?
   printf '%s exit=%s\n' "$start" "$rc" > "$STATUS_DIR/last-failure.txt"
+  publish_metrics 0 || echo "WARNING: failed to publish backup metrics" >&2
   echo "Backup FAILED (exit $rc). See backup job logs." >&2
   exit "$rc"
 fi
