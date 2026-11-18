@@ -100,3 +100,47 @@ Test both success and failure paths in a disposable environment before
 installing a cron/launchd schedule. Backup freshness does not prove
 restorability; continue periodic isolated restore drills and use
 `restic check --read-data` for stronger data verification.
+
+## Prometheus / Alertmanager backup alerts (opt-in)
+
+The Node Exporter container now reads `./backup-metrics/*.prom` through
+its textfile collector. This directory is **not** a backup destination.
+Prometheus rules cover failed backups, last success older than 30 hours,
+missing backup metrics and textfile parsing errors. Existing Alertmanager
+routing determines whether notifications are emailed.
+
+**No backup job or monitoring alert is activated automatically.** Only after
+a manual backup and isolated restore test have passed:
+
+1. Recreate Node Exporter to enable the collector:
+   `docker compose up -d --no-deps node-exporter`.
+2. Enable backup alert monitoring explicitly by creating a local sentinel
+   file (never commit this file):
+   ```bash
+   mkdir -p backup-metrics
+   printf '# HELP dock_backup_monitoring_enabled Whether backup monitoring is explicitly enabled.\n# TYPE dock_backup_monitoring_enabled gauge\ndock_backup_monitoring_enabled 1\n' > backup-metrics/backup-monitoring.enabled.prom
+   ```
+3. Run `bash scripts/run-scheduled-backup.sh` once. It writes
+   `backup-metrics/backup-status.prom` atomically and reports whether the
+   last run succeeded. The host account running the script must have write
+   permission to `backup-metrics`; Node Exporter needs read permission.
+4. Check Prometheus for `dock_backup_last_run_success`,
+   `dock_backup_last_success_timestamp_seconds` and
+   `dock_backup_monitoring_enabled`. Confirm the alerts appear in
+   Prometheus and route through your configured Alertmanager receiver.
+5. Test missing metrics by temporarily moving `backup-status.prom` out of
+   the directory; restore it after observing the alert. Test stale/failure
+   rules in an isolated test environment rather than deliberately failing
+   a production backup.
+
+The sentinel prevents alerts before operators opt into backup monitoring.
+Once enabled, absence of backup status metrics triggers a warning. Remove
+the sentinel to intentionally disable backup-specific alerts; doing so does
+not disable other Prometheus monitoring. Backup status files and sentinel
+files are gitignored. The threshold is currently fixed at 30 hours in
+`prometheus/rules/backups.yml`.
+
+**Host note:** Node Exporter runs in Docker and reads the bind-mounted
+`backup-metrics` directory. The backup script writes to that directory on
+the same host. On SELinux systems, ensure the bind mount has an appropriate
+readable label; on macOS Docker Desktop, share the repository directory.
