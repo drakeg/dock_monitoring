@@ -36,3 +36,6 @@ alertmanager/alertmanager.yml
 # Backup runner state and local Restic repository
 backup-status/
 backups-local/
+
+# Locally generated Prometheus textfile collector metrics
+backup-metrics/*.prom

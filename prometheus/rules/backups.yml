@@ -1,0 +1,35 @@
+groups:
+  - name: backup-recovery
+    rules:
+      - alert: DockBackupFailed
+        expr: dock_backup_last_run_success{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dock monitoring backup failed"
+          description: "The most recent scheduled Restic backup failed. Check the backup runner logs."
+      - alert: DockBackupStale
+        expr: (time() - dock_backup_last_success_timestamp_seconds{job="node-exporter"} > 108000) and on (job, instance) (dock_backup_monitoring_enabled{job="node-exporter"} == 1)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dock monitoring backup older than 30 hours"
+          description: "No successful Restic backup has completed within 30 hours."
+      - alert: DockBackupMetricsMissing
+        expr: (dock_backup_monitoring_enabled{job="node-exporter"} == 1) unless on (job, instance) dock_backup_last_attempt_timestamp_seconds{job="node-exporter"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dock monitoring backup metrics missing"
+          description: "Backup monitoring is enabled but the scheduled runner has not published its metrics."
+      - alert: DockBackupTextfileCollectorError
+        expr: (node_textfile_scrape_error{job="node-exporter"} == 1) and on (job, instance) (dock_backup_monitoring_enabled{job="node-exporter"} == 1)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Node Exporter could not read backup metrics"
+          description: "Check backup-metrics file permissions and Prometheus text format."
