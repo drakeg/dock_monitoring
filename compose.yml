@@ -360,7 +360,7 @@ services:
       - no-new-privileges:true
 
   rt-db:
-    image: postgres:18
+    image: postgres:19
     container_name: rt-db
     restart: unless-stopped
     environment:
