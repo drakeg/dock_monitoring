@@ -38,7 +38,7 @@ services:
       - label=disable
 
   traefik:
-    image: traefik:v3.7
+    image: traefik:v3.8
     container_name: traefik
     restart: unless-stopped
     depends_on:
