@@ -1,5 +1,8 @@
 # Docker Monitoring Infrastructure
 
+[![License](https://img.shields.io/github/license/drakeg/dock_monitoring)](https://github.com/drakeg/dock_monitoring/blob/main/LICENSE)
+
+
 A Docker Compose infrastructure, monitoring, management, and ticketing stack for Linux Docker hosts.
 
 The stack combines Traefik, Prometheus, Grafana, cAdvisor, Node Exporter, Uptime Kuma, MariaDB, Dockge, and a restricted Docker socket proxy. It is intended for LAN administration and monitoring without requiring the host to become the network's DNS or DHCP server.
